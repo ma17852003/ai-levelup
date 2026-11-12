@@ -1,7 +1,7 @@
 // 投影幕：每 3 秒讀 /lu-state；內容沒變就不動 DOM（只改數字與寬度，節點固定）。畫面上永遠沒有編號或名字。
 (function () {
   const SHORT_URL = "ma17852003.github.io/ai-levelup";   // 之後換成真正的短網址
-  const VOTE_OF = { open: ["open.self", "open.agent"], end: ["end.vote", "end.self"] };   // s1 沒有投票；s3.guess 是猜題不是投票，不畫
+  const VOTE_OF = { open: ["open.self", "open.agent"], s1: ["s1.guess"], s3: ["s3.guess"], s4: ["s4.break"], end: ["end.vote", "end.self"] };   // s1／s3／s4 是學員猜的答案（也存成票），畫成「全班猜的」長條圖
   const PILLS = [["A", "寫手"], ["B", "審查員"], ["C", "格式員"]];
 
   // ── 只在值真的變了才寫 DOM（第二次 render 同樣資料 ＝ 零次寫入）──
@@ -36,7 +36,7 @@
     const R = { lvCols: [] };
     // 上排
     const top = h("header", "top");
-    R.stage = h("div", "t-stage", "　"); R.players = h("div", "t-players", "全班 0 人"); R.conn = h("div", "t-conn", "連線中"); R.notice = h("div", "t-notice", ""); R.notice.hidden = true; R.notice._h = true;
+    R.stage = h("div", "t-stage", "　"); R.players = h("div", "t-players", "全班 0 人"); R.conn = h("div", "t-conn", "連線中…"); R.notice = h("div", "t-notice", ""); R.notice.hidden = true; R.notice._h = true;
     const tr = h("div", "t-right"); tr.append(R.players, R.conn); top.append(R.stage, R.notice, tr);
     // 左大塊
     const main = h("main", "main"), left = h("div", "left");
@@ -45,10 +45,12 @@
     LU.LEVELS.forEach(L => {
       const demo = L.lv >= 5, col = h("div", "lv-col " + (demo ? "demo" : "today"));
       const av = h("img", "av"); av.src = "img/avatar-lv" + L.lv + ".png"; av.alt = ""; av.width = 72; av.height = 72;
+      const fb = h("div", "av-fb", "Lv." + L.lv); fb.hidden = true; fb._h = true;   // 圖載不出來就換成文字徽章，不留破圖圖示
+      av.onerror = () => { hide(av, true); hide(fb, false); };
       const track = h("div", "lv-track"), fill = h("i", "lv-fill"); track.append(fill);
       const n = h("div", "lv-n", demo ? "示範" : "0 人");
-      col.append(av, h("div", "lv-no", "Lv." + L.lv), h("div", "lv-name", L.name), track, n);
-      col._fill = fill; col._n = n; R.lvCols.push(col); cols.append(col);
+      col.append(av, fb, h("div", "lv-no", "Lv." + L.lv), h("div", "lv-name", L.name), track, n);
+      col._av = av; col._fb = fb; col._fill = fill; col._n = n; R.lvCols.push(col); cols.append(col);
     });
     const total = h("div", "lv-total");
     R.lvSegs = [1, 2, 3, 4].map(lv => { const s = h("span", "seg", "Lv." + lv); total.append(s); return s; });
@@ -111,8 +113,9 @@
     ids.forEach((id, i) => {
       const box = R.boxes[i], b = voteBlock(id);
       if (box._sid !== id) { box._sid = id; box._rows = {}; box._bars.replaceChildren(); }   // 換成別題：舊的列整批丟掉，不然兩題的長條疊在一起
-      hide(box, false); put(box._hd, b.q);
-      fillBars(box, box._bars, (c.votes || {})[id], b.options.map(o => [o.key, o.label]));
+      const guess = !!b.answer;   // 猜題：標題前綴「全班猜的」，正確答案前面加 ✓（不只靠顏色）
+      hide(box, false); put(box._hd, (guess ? "全班猜的｜" : "") + b.q);
+      fillBars(box, box._bars, (c.votes || {})[id], b.options.map(o => [o.key, (guess && o.key === b.answer ? "✓ " : "") + o.label]));
     });
     for (let i = ids.length; i < R.boxes.length; i++) hide(R.boxes[i], true);
     const showCmp = s.id === "end"; hide(R.cmp, !showCmp);
@@ -172,8 +175,6 @@
     renderAch(R, c);
   }
 
-  window.SCREEN = { build, render, SHORT_URL };
-
   // 伺服器回的東西不可信：只要是物件就當資料，缺的欄位補空；null／非物件才算失敗
   const EMPTY = { players: 0, levels: {}, ach: {}, votes: {}, relay: {}, self0: {}, self1: {} };
   function normalize(c) {
@@ -192,7 +193,7 @@
       try {
         const c = normalize(await api.state());
         if (c) {
-          fails = 0; put(R.conn, "連線中"); data = c;
+          fails = 0; put(R.conn, "已連上"); data = c;
           const si = IDS.indexOf(c.stage);
           if (si >= 0 && now() > holdUntil) idx = si;   // 講師剛按過鍵的幾秒內，不讓舊的伺服器狀態把畫面拉回去
           paint();
@@ -209,7 +210,7 @@
         while (want) {
           const w = want; want = "";
           const r = await api.setStage(w);
-          put(R.notice, r ? "" : "切關沒送出，再按一次"); hide(R.notice, !!r);
+          put(R.notice, r ? "" : "⚠ 切關沒送出，再按一次"); hide(R.notice, !!r);
           holdUntil = now() + 6000;
         }
       } finally { sending = false; }

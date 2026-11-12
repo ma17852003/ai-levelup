@@ -6,17 +6,21 @@
   const save = () => API.store.set(KEY, st);
   function snapshot() {
     API.enqueue({ kind: "snap", value: JSON.stringify({ lv: LU.level(st), ach: LU.achievements(st), self0: st.self0 || 0, self1: st.self1 || 0, acct: st.acct }) });
-    API.flush();
+    return flushed();
   }
+  // 送出後更新 HUD 的「待送出 N 筆」（0 筆就藏起來）
+  function refreshPending() { const n = API.pending(); hud.pend.textContent = n > 0 ? `待送出 ${n} 筆` : ""; }
+  function flushed() { const p = Promise.resolve(API.flush()); p.then(refreshPending, () => {}); return p; }
   const ctx = {
     st: () => st, luc: window.LUC,
-    done(id, extra) { const before = st; st = LU.markDone(st, id, extra); save(); renderHud(); const up = LU.levelUp(before, st); if (up) showLevelUp(LU.level(before), up); snapshot(); },
+    done(id, extra) { const before = st; st = LU.markDone(st, id, extra); save(); renderHud(); const up = LU.levelUp(before, st); if (up) showLevelUp(LU.level(before), up); return snapshot(); },
     sheet(field, value) { st = Object.assign({}, st, { sheet: Object.assign({}, st.sheet, { [field]: value }) }); save(); },
     set(patch) { st = Object.assign({}, st, patch); save(); },   // 接力選組別／角色用
-    send(item) { API.enqueue(item); API.flush(); }
+    send(item) { API.enqueue(item); return flushed(); },
+    pending: () => API.pending()
   };
   // ── HUD：徽章＋頭像＋20 格經驗條（只改內容，不重建節點；頭像只在等級變了才換）──
-  const hud = { crest: h("span", { class: "crest" }), pix: h("span", { class: "pix" }), bar: h("div", { class: "exp", role: "img" }), label: h("span", { class: "exp-label" }), no: h("span", { class: "step-no" }), lv: 0 };
+  const hud = { crest: h("span", { class: "crest" }), pix: h("span", { class: "pix" }), bar: h("div", { class: "exp", role: "img" }), label: h("span", { class: "exp-label" }), pend: h("span", { class: "step-no pend", role: "status" }), no: h("span", { class: "step-no" }), lv: 0 };
   for (let i = 0; i < 20; i++) hud.bar.append(h("i"));
   const cls = (el, c, on) => { if (el.classList) el.classList.toggle(c, on); else el.className = (el.className || "").split(" ").filter(x => x && x !== c).concat(on ? [c] : []).join(" "); };
   function renderHud() {
@@ -25,7 +29,7 @@
     if (hud.lv !== p.lv) { hud.lv = p.lv; hud.pix.replaceChildren(AVATAR.el(p.lv, 48)); }
     Array.from(hud.bar.children).forEach((x, i) => cls(x, "on", i < on));
     const pct = Math.round(p.ratio * 100);
-    hud.label.textContent = p.next ? `EXP ${pct}%　再完成幾件就升到 Lv.${p.next}` : "今天的目標達成：Lv.4 專員";
+    hud.label.textContent = p.next ? `EXP（經驗值）${pct}%　再完成幾件就升到 Lv.${p.next}` : "今天的目標達成：Lv.4 專員";
     hud.bar.setAttribute("aria-label", hud.label.textContent);
     hud.no.textContent = st.player ? `${st.player} 號｜第 ${st.team} 桌` : (st.team ? "網路不太穩，先開始玩，編號稍後補上" : "");
   }
@@ -53,7 +57,7 @@
     });
     const msg = h("p", { "aria-live": "polite" });
     root.replaceChildren(h("section", { class: "stage" }, h("h2", {}, "報到"), h("p", {}, "左邊開這個網頁，右邊開 Gemini。"), h("label", {}, "你坐第幾桌？"), sel,
-      h("p", {}, "你今天用哪個帳號登入 Gemini？"), accts, h("button", { class: "btn submit", onclick: async e => {
+      h("p", {}, "你今天用哪個帳號登入 Gemini？"), accts, h("p", { class: "step-no" }, "Gem＝存好指令的專屬助理；Skill＝寫好的一套做事方法（SOP，標準作業流程），打 @ 叫出來"), h("button", { class: "btn primary", onclick: async e => {
         const go = e.currentTarget;
         if (go.disabled) return;
         if (!acct) { msg.textContent = "先選帳號"; return; }
@@ -89,7 +93,7 @@
     if (started) return;   // 只准啟動一次，不會長出兩條輪詢
     started = true;
     const root = document.getElementById("app");
-    root.replaceChildren(h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label), h("div", {}, hud.pix, hud.no)));
+    root.replaceChildren(h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)));
     STAGES.filter(s => s.id !== "s0" || !st.done["s0.first"]).forEach(s => {
       const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id },
         h("p", { class: "step-no" }, `${stageLabel(s.id)}｜${s.time}｜PPT ${s.ppt}`), h("h2", {}, s.title), s.blocks.map(renderBlock), askBtn(s));
@@ -123,8 +127,10 @@
       }
       if (j && j.relay) { lastRelay = j.relay; if (window.RELAY_UPDATE) window.RELAY_UPDATE(j.relay); }
       // 講師按了新的一堂課。resetId 是數字（含 0）才清；undefined＝入座沒連上，不動
-      if (j && typeof st.resetId === "number" && Number(j.resetId) > st.resetId) { again = false; st = fresh(); save(); API.store.set("lu-q-" + S, []); location.reload(); return; }
-      API.flush();
+      if (j && typeof st.resetId === "number" && Number(j.resetId) > st.resetId) { again = false; // 只清闖關進度；學員自己寫的內容（sheet）、桌號、帳號都留著，重開後用同一桌重新取號
+        st = { sheet: st.sheet || {}, team: st.team, acct: st.acct, done: {}, pass: 0, caught: 0, player: 0 };
+        save(); API.store.set("lu-q-" + S, []); location.reload(); return; }
+      await API.flush(); refreshPending();
     } catch (e) { /* 單輪失敗不影響下一輪 */ }
     finally {
       if (again) { setTimeout(poll, nextPollMs(st, lastRelay) * (0.85 + Math.random() * 0.3)); }   // 錯開 ±15%

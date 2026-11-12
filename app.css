@@ -13,3 +13,6 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
 .tick { display: inline-block; width: 1.2em; text-align: left; }
 .paper:empty { display: none; }
+.btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 700; }
+.pend { margin-left: var(--sp-2); }
+.pend:empty { display: none; }

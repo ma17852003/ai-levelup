@@ -9,7 +9,7 @@ body { font: 1.125rem/1.35 var(--font-sans); }
 .top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 3.25rem; border-bottom: 1px solid var(--line); padding-bottom: .5rem; }
 .t-stage { font-size: 1.75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .t-right { text-align: right; white-space: nowrap; }
-.t-players { font: 800 1.5rem var(--font-mono); color: var(--gold); }
+.t-players { font: 800 1.5rem var(--font-mono); color: var(--fg); }
 .t-conn { font-size: .9375rem; color: var(--fg-dim); }
 
 /* 主區：左大塊＋右成就牆 */
@@ -79,8 +79,8 @@ body { font: 1.125rem/1.35 var(--font-sans); }
 .ach h3 { margin: 0; font-size: 1.375rem; } .ach-sub { color: var(--fg-dim); font-size: .9375rem; margin-bottom: .5rem; }
 .ach-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .5rem; }
 .ach .bar-row { grid-template-columns: 1fr 3rem; grid-template-rows: auto auto; gap: .125rem .5rem; max-height: none; align-content: center; }
-.ach .bl { font-size: 1.125rem; grid-column: 1; } .ach .bn { grid-column: 2; grid-row: 1; color: var(--gold); font-size: 1.375rem; }
-.ach .bb { grid-column: 1 / 3; grid-row: 2; height: .5rem; } .ach .bb i { background: var(--gold); }
+.ach .bl { font-size: 1.125rem; grid-column: 1; } .ach .bn { grid-column: 2; grid-row: 1; color: var(--fg); font-size: 1.375rem; }
+.ach .bb { grid-column: 1 / 3; grid-row: 2; height: .5rem; } .ach .bb i { background: var(--fg-dim); }
 
 /* 底列 */
 .bottom { display: flex; align-items: center; gap: 2rem; border-top: 1px solid var(--line); padding-top: .5rem; min-height: 3rem; }
@@ -96,7 +96,7 @@ body { font: 1.125rem/1.35 var(--font-sans); }
 .v-open .bars { flex: none; }
 
 /* 提示（切關沒送出）：放在上排中間，不推擠版面 */
-.t-notice { flex: none; color: var(--on-gold); background: var(--gold); font-weight: 700; font-size: 1rem; padding: .25rem .75rem; border-radius: var(--r-pill); white-space: nowrap; }
+.t-notice { flex: none; color: var(--bg-deep); background: var(--bad); font-weight: 700; font-size: 1rem; padding: .25rem .75rem; border-radius: var(--r-pill); white-space: nowrap; }
 /* 接力組多：兩欄／三欄，列高縮小，20 組也放得下 */
 .relay-list.c2, .relay-list.c3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 2.6rem; gap: .125rem 1rem; align-content: start; }
 .relay-list.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 2.2rem; gap: .125rem .75rem; }
@@ -138,3 +138,7 @@ body { font: 1.125rem/1.35 var(--font-sans); }
 .b-url { min-width: 0; white-space: nowrap; } .b-url .b-v { font-size: 1.25rem; } .b-code .b-v { font-size: 1.5rem; }
 .b-code { white-space: nowrap; }
 @media (orientation: portrait) { .bottom { flex-wrap: wrap; } .b-url { flex-basis: 100%; } .b-hint { white-space: normal; } }
+
+.av-fb { width: 4.5rem; height: 4.5rem; flex: none; display: grid; place-items: center; border: 1.5px solid var(--line-strong); border-radius: var(--r-card); font: 800 1.25rem var(--font-mono); color: var(--fg-dim); box-sizing: border-box; }
+
+.v-s1 .bar-row, .v-s3 .bar-row, .v-s4 .bar-row { grid-template-columns: 14rem minmax(0, 1fr) 3rem; height: 2.25rem; flex: none; }
