@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>我的 AI 團隊設計單</title>
-<link rel="stylesheet" href="theme.css?v=202611121740"><link rel="stylesheet" href="app.css?v=202611121740">
+<link rel="stylesheet" href="theme.css?v=202611121826"><link rel="stylesheet" href="app.css?v=202611121826">
 <style>
   .sheet { max-width: 794px; margin: 0 auto; padding: var(--sp-4); }
   .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-4) 0; }
   .head { display: flex; gap: var(--sp-4); align-items: center; border-bottom: 2px solid var(--line-strong); padding-bottom: var(--sp-3); }
   .head h1 { margin: 0; font-size: var(--fs-xl); }
-  .cell { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; break-inside: avoid; }
+  .cell { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; }
+  .cell.short { break-inside: avoid; }   /* 短的格子不切開；長的可以跨頁，才塞得進兩頁 A4 */
   .cell h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-md); }
   .val { white-space: pre-wrap; overflow-wrap: anywhere; }
   .empty { color: var(--fg-dim); }
@@ -26,36 +27,35 @@
   }
 </style></head>
 <body><main class="sheet" id="sheet"></main>
-<script src="core.js?v=202611121740"></script><script src="pixel.js?v=202611121740"></script><script src="avatar.js?v=202611121740"></script>
+<script src="core.js?v=202611121826"></script><script src="pixel.js?v=202611121826"></script><script src="avatar.js?v=202611121826"></script>
 <script>
 (function () {
   const root = document.getElementById("sheet");
-  const s = (new URLSearchParams(location.search).get("s") || "1").replace(/\D/g, "").slice(0, 4) || "1";
+  const s = (new URLSearchParams(location.search).get("s") || "1").replace(/\D/g, "").slice(0, 4).replace(/^0+(?=\d)/, "") || "1";
   const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   let st = null, blocked = false;
   try { st = JSON.parse(localStorage.getItem("lu-st-" + s) || "null"); } catch (e) { st = null; blocked = true; }
   const bar = h("div", "bar noprint"), btn = h("button", "btn submit", "列印／存成 PDF");
   btn.addEventListener("click", () => window.print()); bar.append(btn, h("span", "step-no", "選「另存成 PDF」就能帶回家；A4 直式"));
   root.append(bar);
-  if (blocked) { root.append(h("p", "bad-msg", "這台電腦擋住了瀏覽器存檔，請回闖關頁按『產生我的設計單』前先截圖")); return; }
+  if (blocked) { root.append(h("p", "bad-msg", "這台電腦不允許網頁存檔，設計單無法產生。請回闖關頁，把每一關自己寫的內容複製到 Word 或截圖保存。")); return; }
   if (!st || !st.done) {
     root.append(h("p", "", "這台電腦上找不到你的闖關紀錄。請用上課時同一台電腦、同一個瀏覽器開這一頁。"));
     return;
   }
   const sheet = st.sheet || {}, lv = LU.level(st), L = LU.LEVELS[lv - 1];
+  const tableName = team => /^線上(\d+)$/.test(String(team)) ? `線上第 ${String(team).slice(2)} 組` : `第 ${team} 桌`;
   const head = h("header", "head"), t = h("div");
-  t.append(h("h1", "", "我的 AI 團隊設計單"), h("p", "", `Lv.${lv} ${L.name}${st.player ? `｜${st.player} 號` : ""}${st.team ? `｜第 ${st.team} 桌` : ""}`));
-  const nm = n => (LU.LEVELS[n - 1] ? `Lv.${n} ${LU.LEVELS[n - 1].name}` : "還沒填");
-  t.append(h("p", "", `遊戲等級：Lv.${lv} ${L.name}`), h("p", "", `自評：開場 ${nm(st.self0)}／收尾 ${nm(st.self1)}`));
+  t.append(h("h1", "", "我的 AI 團隊設計單"), h("p", "", `${st.player ? `${st.player} 號` : ""}${st.player && st.team ? "｜" : ""}${st.team ? tableName(st.team) : ""}`), h("p", "", `遊戲等級：Lv.${lv} ${L.name}`));
+  const nm = n => (LU.LEVELS[n - 1] ? `Lv.${n} ${LU.LEVELS[n - 1].name}` : "（還沒填）");
   head.append(AVATAR.el(lv, 96), t); root.append(head);
-  function cell(title, value) {
-    const c = h("section", "cell"); c.append(h("h2", "", title));
-    const txt = typeof value === "string" ? value.trim() : "";
-    c.append(txt ? h("div", "val", txt) : h("div", "empty", "（這格還沒寫）"));
+  function cell(title, value, emptyText) {
+    const txt = typeof value === "string" ? value.trim() : "", c = h("section", "cell" + (txt.length < 160 ? " short" : "")); c.append(h("h2", "", title));
+    c.append(txt ? h("div", "val", txt) : h("div", "empty", emptyText || "（這格還沒寫）"));
     root.append(c);
   }
   function rows(title, pairs) {
-    const c = h("section", "cell"), ul = h("ul", "rows"); c.append(h("h2", "", title));
+    const c = h("section", "cell short"), ul = h("ul", "rows"); c.append(h("h2", "", title));
     pairs.forEach(([k, v]) => { const li = h("li"), val = typeof v === "string" && v.trim() ? v.trim() : ""; li.append(h("b", "", k), h("span", val ? "val" : "empty", val || "（還沒寫）")); ul.append(li); });
     c.append(ul); root.append(c);
   }
@@ -64,7 +64,8 @@
   cell("第 2、3 格　需求單（我的專員要做什麼、怎麼算做得好）", sheet.brief);
   cell("第 4 格　參考資料目錄（檔名｜管什麼｜給誰｜關鍵字）", sheet.toc);
   cell("第 5 格　考我的 Gem 的陷阱題", sheet.traps);
-  cell("考試成績", `${Number(st.pass) || 0} 題通過（共 5 題，過 4 題以上算 Lv.4 專員）`);
+  cell("設計單第 6 格：你在 Lv 幾", `開場自評：${nm(st.self0)}　→　收尾自評：${nm(st.self1)}`);
+  cell("考試成績", (st.done || {})["s4.pass"] ? `${Number(st.pass) || 0} 題通過（共 5 題，過 4 題以上算 Lv.4 專員）` : "", "（還沒填）");
   rows("我的小隊名片", [["專員（Gem 名稱）", card.gem], ["審查員", card.reviewer], ["明天從哪裡打開", card.where]]);
   rows("三週計畫", [["第 1 週　試用的同事", plan.w1], ["第 2 週　再加哪一份", plan.w2], ["第 3 週　真的工作", plan.w3]]);
 })();

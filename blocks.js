@@ -16,9 +16,17 @@
   const submitAttrs = id => { const t = window.LU && window.LU.TASKS.find(x => x.id === id); return { class: "btn " + (!window.LU || (t && t.lv > 0) ? "submit" : "primary"), "data-task": id }; };
   const watchers = [], notify = () => watchers.forEach(f => f());   // 填格改字時，通知依賴它的紙卡（拷問提示詞帶入第 1 格）
   // 送出類訊息要老實：先說「已記下」，flush 完還有東西排隊就說網路恢復後自動送
+  // 桌號怎麼念：一般桌「第 7 桌」，線上組「線上第 10 組」
+  const tableName = team => /^線上(\d+)$/.test(String(team)) ? `線上第 ${String(team).slice(2)} 組` : `第 ${team} 桌`;
   function report(ctx, msg, okText, p) {
+    const wait = "✓ 已記下，網路恢復後自動送出";
     msg.className = "ok-msg"; msg.textContent = "✓ 已記下，傳送中…";
-    Promise.resolve(p).then(() => { msg.textContent = (ctx.pending ? ctx.pending() : 0) > 0 ? "✓ 已記下，網路恢復後自動送出" : okText; }, () => {});
+    Promise.resolve(p).then(() => {
+      if ((ctx.pending ? ctx.pending() : 0) <= 0) { msg.textContent = okText; return; }
+      msg.textContent = wait;
+      if (!ctx.onFlush) return;
+      const off = ctx.onFlush(() => { if (msg.textContent !== wait) { off(); return; } if (ctx.pending() <= 0) { msg.textContent = okText; off(); } });   // 排隊的送完了：改成「已送出」
+    }, () => {});
   }
   function textOf(luc, from) {
     const v = luc[from];
@@ -65,9 +73,10 @@
     },
     check(b, ctx) {
       return h("div", { class: "block" }, b.items.map(it => {
-        const box = h("input", { type: "checkbox", id: "c-" + it.id }); box.checked = !!(ctx.st().done || {})[it.id];
-        box.addEventListener("change", () => { if (box.checked) ctx.done(it.id); });
-        return h("label", { class: "check", for: "c-" + it.id }, box, " ", it.label);
+        const done = !!(ctx.st().done || {})[it.id], note = h("span", { class: "step-no" }, done ? " 已完成" : "");
+        const box = h("input", { type: "checkbox", id: "c-" + it.id }); box.checked = done; if (done) box.disabled = true;   // 勾了就不能取消
+        box.addEventListener("change", () => { if (box.checked) { ctx.done(it.id); box.disabled = true; note.textContent = " 已完成"; } });
+        return h("label", { class: "check", for: "c-" + it.id }, box, " ", it.label, note);
       }));
     },
     guess(b, ctx) {
@@ -100,24 +109,37 @@
         if (!chosen.size) { msg.textContent = "先選一個"; return false; }
         const value = Array.from(chosen).join(",");
         const p = ctx.send({ kind: "vote", key: b.id, value });
-        const extra = b.id === "open.self" ? { self0: Math.max(...Array.from(chosen).map(k => "ABCDEFG".indexOf(k) + 1)) } : b.id === "end.self" ? { self1: Number(value) } : {};
+        const picks = { picks: Object.assign({}, ctx.st().picks, { [b.id]: Array.from(chosen) }) };
+        const extra0 = b.id === "open.self" ? { self0: Math.max(...Array.from(chosen).map(k => "ABCDEFG".indexOf(k) + 1)) } : b.id === "end.self" ? { self1: Number(value) } : {}, extra = Object.assign({}, extra0, picks);
         const q = ctx.done(b.id, extra); submit.disabled = true;
         report(ctx, msg, "✓ 已送出（要改可以再按一次重新送出）", Promise.all([p, q])); reveal.textContent = revealFor();
       }) }), "送出");
+      ((ctx.st().picks || {})[b.id] || []).forEach(k => { const i = b.options.findIndex(o => o.key === k); if (i >= 0) { chosen.add(k); mark(i, true); } });   // 重新整理後還原選項
       if ((ctx.st().done || {})[b.id]) { msg.textContent = "✓ 已送出"; reveal.textContent = revealFor(); }
       return h("div", { class: "block" }, h("p", {}, b.q), btns, submit, " ", msg, reveal);
     },
     sort(b, ctx) {
-      // 點選式：先點卡、再點桶（拖拉對中年使用者不友善，點兩下一樣能分）；也支援拖拉
+      // 點選式：先點卡、再點桶（拖拉對中年使用者不友善，點兩下一樣能分）；也支援拖拉。
+      // 已拿起一張卡時，點桶子裡的任何東西（包括桶裡的卡）都是「放進這個桶」；沒拿起卡時，點桶裡的卡才是拿起它
       let picked = null, finished = false; const msg = h("p", { "aria-live": "polite" });
-      const cards = b.cards.map((c, i) => { const el = h("button", { class: "chip", draggable: "true", "data-i": i, onclick: e => { if (e && e.stopPropagation) e.stopPropagation(); picked = i; cards.forEach(x => x.setAttribute("aria-pressed", "false")); el.setAttribute("aria-pressed", "true"); } }, c.label); el.addEventListener("dragstart", () => { picked = i; }); return el; });
+      const unpick = () => { picked = null; cards.forEach(x => x.setAttribute("aria-pressed", "false")); };
+      const cards = b.cards.map((c, i) => { const el = h("button", { class: "chip", draggable: "true", "data-i": i, onclick: e => {
+        if (picked != null && picked !== i) return;   // 不攔截：事件往上冒泡，由所在的桶（或卡片區）接住並放下
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (picked === i) { unpick(); return; }       // 再點一次＝取消拿起
+        picked = i; cards.forEach(x => x.setAttribute("aria-pressed", "false")); el.setAttribute("aria-pressed", "true");
+      } }, c.label); el.addEventListener("dragstart", () => { picked = i; }); return el; });
       const place = {};
-      const buckets = b.buckets.map((k, bi) => { const lid = "bk-" + b.id + "-" + bi;
-        const zone = h("div", { class: "bucket", role: "button", tabindex: "0", "aria-labelledby": lid }, shapeMark(k.shape), h("strong", { id: lid }, k.label));
-        const drop = () => { if (picked == null) return; const card = cards[picked]; zone.append(card); place[picked] = k.key; picked = null; if (card.focus) card.focus(); check(); };
+      const wire = (zone, onDrop) => {
+        const drop = () => { if (picked == null) return; const i = picked, card = cards[i]; zone.append(card); onDrop(i); unpick(); if (card.focus) card.focus(); check(); };
         zone.addEventListener("click", drop);
-        zone.addEventListener("keydown", e => { if (e.target !== zone) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); drop(); } }); zone.addEventListener("dragover", e => e.preventDefault()); zone.addEventListener("drop", e => { e.preventDefault(); drop(); });
-        return zone; });
+        zone.addEventListener("keydown", e => { if (e.target !== zone) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); drop(); } });
+        zone.addEventListener("dragover", e => e.preventDefault()); zone.addEventListener("drop", e => { e.preventDefault(); drop(); });
+        return zone;
+      };
+      const pool = wire(h("div", { class: "pool", role: "button", tabindex: "0", "aria-label": "卡片區（把卡放回這裡）" }, cards), i => { delete place[i]; });
+      const buckets = b.buckets.map((k, bi) => { const lid = "bk-" + b.id + "-" + bi;
+        return wire(h("div", { class: "bucket", role: "button", tabindex: "0", "aria-labelledby": lid }, shapeMark(k.shape), h("strong", { id: lid }, k.label)), i => { place[i] = k.key; }); });
       function check() {
         if (Object.keys(place).length < b.cards.length) return;
         const wrong = b.cards.filter((c, i) => place[i] !== c.bucket).map(c => c.label);
@@ -125,7 +147,7 @@
         else { msg.className = "ok-msg"; msg.textContent = "✓ 全對"; if (!finished && !(ctx.st().done || {})[b.id]) { finished = true; ctx.done(b.id); } }
       }
       if ((ctx.st().done || {})[b.id]) { msg.className = "ok-msg"; msg.textContent = "✓ 已完成，可以重新練習"; }
-      return h("div", { class: "block" }, h("p", {}, b.q), h("div", { class: "pool" }, cards), h("div", { class: "buckets" }, buckets), msg);
+      return h("div", { class: "block" }, h("p", {}, b.q), pool, h("div", { class: "buckets" }, buckets), msg);
     },
     pass(b, ctx) {
       const sel = h("select", { "aria-label": "過了幾題" }, [0, 1, 2, 3, 4, 5].map(n => h("option", { value: n }, n + " 題")));
@@ -136,10 +158,15 @@
         h("p", { class: "step-no" }, "過 4 題以上就升到 Lv.4 專員；沒過的題目，回家補進指令或參考資料"));
     },
     caught(b, ctx) {
-      const boxes = b.items.map((x, i) => { const c = h("input", { type: "checkbox", id: "cg" + i }); return [c, h("label", { for: "cg" + i }, c, " ", x)]; });
+      const saved0 = ((ctx.st().picks || {})[b.id]) || [];
+      const boxes = b.items.map((x, i) => { const c = h("input", { type: "checkbox", id: "cg" + i }); c.checked = saved0.includes(i); return [c, h("label", { for: "cg" + i }, c, " ", x)]; });
       const st = ctx.st(), saved = h("p", { class: "ok-msg", "aria-live": "polite" }, (st.done || {})[b.id] && typeof st.caught === "number" ? `✓ 已送出：抓到 ${st.caught} 個` : "");
       return h("div", { class: "block" }, h("p", {}, "1:35 揭曉後：你們這組抓到了哪幾個？"), boxes.map(x => x[1]),
-        h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => { const n = boxes.filter(x => x[0].checked).length; const q = ctx.done(b.id, { caught: n }); report(ctx, saved, `✓ 已送出：抓到 ${n} 個`, q); }) }), "送出"), saved);
+        h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => {
+          const idx = boxes.map((x, i) => x[0].checked ? i : -1).filter(i => i >= 0);
+          if (!idx.length) { saved.className = "bad-msg"; saved.textContent = "先勾抓到的錯"; return false; }
+          const q = ctx.done(b.id, { caught: idx.length, picks: Object.assign({}, ctx.st().picks, { [b.id]: idx }) }); report(ctx, saved, `✓ 已送出：抓到 ${idx.length} 個`, q);
+        }) }), "送出"), saved);
     },
     relay(b, ctx) {
       const wrap = h("div", { class: "block" });
@@ -147,17 +174,28 @@
       const prevBox = h("div", { class: "paper", "aria-live": "polite" }, "等前一棒交棒…");
       function body() {
         const st = ctx.st(), r = roles[st.relayRole], ta = h("textarea", { rows: 8, maxlength: 6000, "aria-label": "貼上你的成果" }), msg = h("span", { "aria-live": "polite" });
-        const count = h("span", { class: "step-no" }, "0 / 6000 字"), go = h("button", submitAttrs("s5.relay"), "交棒");
-        wrap.replaceChildren(h("p", {}, `你是第 ${st.relayGroup} 組的 ${st.relayRole} ${r[0]}`),
-          h("details", { open: "" }, h("summary", {}, "原始資料（三個人都一樣，裡面藏了 3 個錯）"), h("div", { class: "paper" }, ctx.luc.relayData)),
+        const parts = String(st.relayGroup).split("-"), grpNo = parts.pop(), team = parts.join("-"), online = /^線上/.test(team);
+        const dkey = "relay_" + st.relayGroup + "_" + st.relayRole, skey = "relaySent_" + st.relayGroup + "_" + st.relayRole;   // 草稿與已交的版本：重新整理不會不見
+        const sheet = st.sheet || {};
+        const count = h("span", { class: "step-no" }, "0 / 6000 字"), over = h("span", { class: "bad-msg", "aria-live": "polite" }), go = h("button", submitAttrs("s5.relay"), "交棒");
+        const sentBox = h("div", {});
+        const showSent = t => sentBox.replaceChildren(t ? h("p", { class: "step-no" }, "你交出去的版本") : "", t ? h("div", { class: "paper" }, t) : "");
+        ta.value = sheet[dkey] || ""; count.textContent = `${ta.value.length} / 6000 字`; showSent(sheet[skey] || "");
+        const warn = () => { over.textContent = ta.value.length >= 6000 ? "已達 6000 字上限，多的不會送出" : ""; };
+        warn();
+        wrap.replaceChildren(h("p", {}, online ? `你是${tableName(team)}的 ${st.relayRole} ${r[0]}` : `你是${tableName(team)}・第 ${grpNo} 組的 ${st.relayRole} ${r[0]}`),
+          h("details", { open: "" }, h("summary", {}, `原始資料（${online ? "兩" : "三"}個人都一樣，裡面藏了 3 個錯）`), h("div", { class: "paper" }, ctx.luc.relayData)),
           R.copy({ label: `${r[0]}的指令：整段複製到 Gemini`, from: r[1] }, ctx),
           r[2] ? h("div", {}, h("p", {}, `前一棒（${r[2]}）交給你的：`), prevBox) : "",
-          h("label", {}, "把 AI 做好的成果整段貼在這裡，按「交棒」"), ta, h("div", {}, count),
-          go, " ", msg);
-        ta.addEventListener("input", () => { count.textContent = `${ta.value.length} / 6000 字`; go.disabled = false; });   // 改了內容才能再交
+          h("label", {}, "把 AI 做好的成果整段貼在這裡，按「交棒」"), ta, h("div", {}, count, " ", over),
+          go, " ", msg, sentBox);
+        ta.addEventListener("input", () => { count.textContent = `${ta.value.length} / 6000 字`; warn(); ctx.sheet(dkey, ta.value); go.disabled = false; });   // 改了內容才能再交；草稿每個字都存
+        ta.addEventListener("paste", e => { const t = e && e.clipboardData && e.clipboardData.getData ? e.clipboardData.getData("text") : ""; if (t && ta.value.length + t.length > 6000) over.textContent = "已達 6000 字上限，多的不會送出"; });
         go.addEventListener("click", () => press(go, () => {
             if (ta.value.trim().length < 20) { msg.className = "bad-msg"; msg.textContent = "成果太短，整段貼上"; return false; }
-            const p = ctx.send({ kind: "relay", team: st.relayGroup, key: st.relayRole, value: ta.value.slice(0, 6000) });
+            const text = ta.value.slice(0, 6000);
+            const p = ctx.send({ kind: "relay", team: st.relayGroup, key: st.relayRole, value: text });
+            ctx.sheet(skey, text); showSent(text);
             const q = ctx.done("s5.relay"); go.disabled = true; report(ctx, msg, "✓ 已交棒。要改就修改內容再按一次", Promise.all([p, q]));
         }));
         window.RELAY_UPDATE = texts => { const prev = r[2] && texts[r[2]]; if (prev && prevBox.textContent !== prev) prevBox.textContent = prev; };
@@ -190,11 +228,14 @@
         }) }), "存計畫"), " ", msg,
         h("a", { class: "btn primary", href: "takeaway.html?s=" + encodeURIComponent(window.LU_CFG.session), target: "_blank", rel: "noopener" }, "產生我的設計單（可列印）"));
     },
+    link(b) {   // 另開分頁的連結鈕；不給經驗值、不算任務
+      return h("div", { class: "block" }, h("a", { class: "btn primary", href: b.href, target: "_blank", rel: "noopener" }, b.label));
+    },
     demo(b, ctx) {
       return h("div", { class: "block" }, b.cards.map(c => h("div", { class: "stage demo" },
         h("div", { class: "pixel-wrap", "aria-hidden": "true" }), h("strong", {}, `Lv.${c.lv}　${c.title}`), h("p", {}, c.note),
         c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: e => { ctx.done(b.id); flash(e.currentTarget, "✓ 已打開", 3000); } }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
     }
   };
-  window.BLOCKS = { h, R, textOf, flash, press };
+  window.BLOCKS = { h, R, textOf, flash, press, tableName };
 })();

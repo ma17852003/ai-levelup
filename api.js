@@ -1,6 +1,7 @@
 // 《AI 升級之路》網路層：送出佇列＋入座＋輪詢。LU_CFG = { api, session } 由 index.html / screen.html 先設好
 (function () {
   const cfg = () => window.LU_CFG;
+  const stale = new Set();
   const mem = new Map();   // localStorage 被擋（無痕／封鎖）時的備援，頁面開著期間照常運作
   const store = {
     get(k, d) {
@@ -8,7 +9,14 @@
       try { const v = localStorage.getItem(k); if (v) return JSON.parse(v); } catch (e) { /* 讀不到就用預設 */ }
       return d;
     },
-    set(k, v) { const t = JSON.stringify(v); mem.set(k, t); try { localStorage.setItem(k, t); } catch (e) {} }
+    // 讀最新：先看 localStorage（別的分頁剛寫的也看得到），讀不到才用本頁記憶體
+    fresh(k, d) {
+      if (!stale.has(k)) { try { const v = localStorage.getItem(k); if (v) return JSON.parse(v); } catch (e) { /* 被擋或壞掉就退回記憶體 */ } }
+      if (mem.has(k)) return JSON.parse(mem.get(k));
+      return d;
+    },
+    set(k, v) { const t = JSON.stringify(v); mem.set(k, t); try { localStorage.setItem(k, t); stale.delete(k); } catch (e) { stale.add(k); } },   // 寫不進去（容量滿）的 key，改以本頁記憶體為準
+    persistent() { try { localStorage.setItem("lu-probe", "1"); localStorage.removeItem("lu-probe"); return true; } catch (e) { return false; } }
   };
   const qKey = () => "lu-q-" + cfg().session;
   let cid = "";
@@ -20,7 +28,7 @@
   // 回 { j, responded }：responded = 伺服器真的有回話（斷線／逾時是 false）
   async function send(path, fields, ms) {
     try {
-      const ctrl = new AbortController(), tid = setTimeout(() => ctrl.abort(), ms || 10000);
+      const ctrl = new AbortController(), tid = setTimeout(() => ctrl.abort(), ms || 15000);
       const r = await fetch(cfg().api + path, { method: "POST", body: new URLSearchParams(fields), signal: ctrl.signal });
       const j = await r.json().catch(() => null); clearTimeout(tid);   // clearTimeout 放在讀完內容之後（迎賓台教訓）
       return { j: j && j.ok === true ? j : null, responded: true };
@@ -29,13 +37,13 @@
   const post = async (path, fields, ms) => (await send(path, fields, ms)).j;
   async function get(path, ms) {
     try {
-      const ctrl = new AbortController(), tid = setTimeout(() => ctrl.abort(), ms || 8000);
+      const ctrl = new AbortController(), tid = setTimeout(() => ctrl.abort(), ms || 12000);
       const r = await fetch(cfg().api + path, { signal: ctrl.signal, cache: "no-store" });
       const j = await r.json().catch(() => null); clearTimeout(tid);
       return j;
     } catch (e) { return null; }
   }
-  function queue() { return store.get(qKey(), []); }
+  function queue() { return store.fresh(qKey(), []); }   // 每次讀最新：兩個分頁各自排的，都在同一份佇列裡，依 qid 不會互相蓋掉
   let seq = 0;
   function enqueue(item) {
     let q = queue();

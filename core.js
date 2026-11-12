@@ -33,7 +33,8 @@
   function markDone(st, id, extra) {
     return Object.assign({}, st, extra || {}, { done: Object.assign({}, st.done, { [id]: true }) });
   }
-  function level(st) { return MILESTONES.filter(m => m.ok(st)).reduce((m, x) => Math.max(m, x.lv), 1); }
+  // 一關一關升，不能跳級：Lv.2 要需求單；Lv.3 要先到 Lv.2 再建好 Gem；Lv.4 要先到 Lv.3 再過 4 題
+  function level(st) { let lv = 1; for (const m of MILESTONES) { if (m.ok(st)) lv = m.lv; else break; } return lv; }
   function progress(st) {
     const lv = level(st);
     if (lv >= 4) return { lv, next: null, ratio: 1 };

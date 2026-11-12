@@ -67,7 +67,8 @@
     R.cmp.append(R.cmpH, lg, R.cmpSub, R.cmpBars); R.votes.append(R.cmp);
 
     R.relay = h("section", "panel relay");
-    R.relayHead = h("h3", "", "三人接力：抓出資料裡的 3 個錯");
+    R.relayHead = h("div", "relay-head"); R.relayPageInd = h("span", "relay-page", ""); R.relayPageInd.hidden = true; R.relayPageInd._h = true;
+    R.relayHead.append(h("h3", "", "三人接力：抓出資料裡的 3 個錯"), R.relayPageInd); R.relayPage = 0; R.relayPages = 1;
     R.relayList = h("div", "relay-list"); R.relayRows = {}; R.relayKeys = "";
     R.relayEmpty = h("div", "relay-empty", "還沒有小組開始接力");
     R.relay.append(R.relayHead, R.relayList, R.relayEmpty);
@@ -141,22 +142,41 @@
     put(R.cmpSub, a0 && a1 ? `開場平均 ${a0.toFixed(1)} 級 → 收尾平均 ${a1.toFixed(1)} 級` : "等大家填完就會出現");
   }
   const codeOrder = (a, b) => String(a).localeCompare(String(b), "zh-Hant", { numeric: true });   // 固定照組別排，絕不照進度（照進度排＝變相排名）
+  const isOnline = g => /^線上/.test(String(g));
+  const rolesOf = g => (isOnline(g) ? PILLS.slice(0, 2) : PILLS);   // 線上組只有寫手＋審查員兩棒
+  const PAGE_CAP = 60;   // 小卡一頁放 60 張（5 欄 × 12 列）；再多就每 8 秒自動翻頁
   function renderRelay(R, c) {
-    const relay = isObj(c.relay) ? c.relay : {}, keys = Object.keys(relay).sort(codeOrder), sig = keys.join("|");
+    const relay = isObj(c.relay) ? c.relay : {}, keys = Object.keys(relay).sort(codeOrder), n = keys.length;
+    const cards = n > 20, sig = keys.join("|") + (cards ? "#c" : "");
     if (sig !== R.relayKeys) {   // 組別名單變了才重排節點（罕見）
       R.relayKeys = sig; R.relayRows = {};
       R.relayList.replaceChildren(...keys.map(g => {
-        const row = h("div", "relay-row"), name = h("span", "r-name", "第 " + g + " 組"), pills = h("span", "r-pills");
-        row._p = PILLS.map(([k, l]) => { const p = h("span", "pill", "○ " + l); pills.append(p); return p; });
-        row.append(name, pills); R.relayRows[g] = row; return row;
+        let row;
+        if (cards) {   // 組別多：小卡＝短組名＋三顆（線上兩顆）字母圓點
+          row = h("span", "rc"); row.append(h("span", "rc-n", g));
+          row._p = rolesOf(g).map(([k]) => { const d = h("i", "dot", k); row.append(d); return d; });
+        } else {
+          row = h("div", "relay-row"); const pills = h("span", "r-pills");
+          row.append(h("span", "r-name", "第 " + g + " 組"), pills);
+          row._p = rolesOf(g).map(([k, l]) => { const p = h("span", "pill", "○ " + l); pills.append(p); return p; });
+        }
+        R.relayRows[g] = row; return row;
       }));
     }
-    cls(R.relayList, "relay-list" + (keys.length > 20 ? " c3" : keys.length > 8 ? " c2" : ""));
-    hide(R.relayEmpty, keys.length > 0);
-    keys.forEach(g => PILLS.forEach(([k, l], i) => {
-      const done = !!(relay[g] || {})[k], p = R.relayRows[g]._p[i];
-      cls(p, done ? "pill done" : "pill"); put(p, (done ? "✓ " : "○ ") + l);
-    }));
+    cls(R.relayList, "relay-list" + (cards ? " cards" : n > 8 ? " c2" : ""));
+    hide(R.relayEmpty, n > 0);
+    R.relayPages = cards ? Math.ceil(n / PAGE_CAP) : 1;
+    if (R.relayPage >= R.relayPages) R.relayPage = 0;
+    put(R.relayPageInd, R.relayPages > 1 ? `第 ${R.relayPage + 1}/${R.relayPages} 頁` : ""); hide(R.relayPageInd, R.relayPages <= 1);
+    keys.forEach((g, gi) => {
+      const row = R.relayRows[g], roles = rolesOf(g), r = isObj(relay[g]) ? relay[g] : {};
+      let all = true;
+      roles.forEach(([k, l], i) => {
+        const done = r[k] === true; if (!done) all = false;
+        if (cards) cls(row._p[i], done ? "dot on" : "dot"); else { cls(row._p[i], done ? "pill done" : "pill"); put(row._p[i], (done ? "✓ " : "○ ") + l); }
+      });
+      if (cards) { cls(row, all ? "rc full" : "rc"); hide(row, Math.floor(gi / PAGE_CAP) !== R.relayPage); }
+    });
   }
   function renderAch(R, c) {
     const total = max1(num(c, "players"), ...LU.ACH.map(a => num(c.ach, a.id)));
@@ -175,51 +195,64 @@
     renderAch(R, c);
   }
 
-  // 伺服器回的東西不可信：只要是物件就當資料，缺的欄位補空；null／非物件才算失敗
+  // 伺服器回的東西不可信：{ok:false}、沒有數字 players、非物件 ＝ 失敗（沿用上一份好資料，不畫零）；
+  // 其餘補空欄位、數字清成 0～9999 的整數、接力的棒次只有 === true 才算完成
   const EMPTY = { players: 0, levels: {}, ach: {}, votes: {}, relay: {}, self0: {}, self1: {} };
+  const clean = n => { n = Number(n); return Number.isFinite(n) && n > 0 ? Math.min(9999, Math.round(n)) : 0; };
+  const cleanMap = m => { const o = {}; if (isObj(m)) Object.keys(m).forEach(k => { o[k] = clean(m[k]); }); return o; };
   function normalize(c) {
-    if (!isObj(c)) return null;
+    if (!isObj(c) || c.ok === false || typeof c.players !== "number" || !Number.isFinite(c.players)) return null;
     const o = Object.assign({}, c);
-    ["levels", "ach", "votes", "relay", "self0", "self1"].forEach(k => { if (!isObj(o[k])) o[k] = {}; });
-    o.players = Number(o.players) || 0;
+    o.players = clean(c.players);
+    ["levels", "ach", "self0", "self1"].forEach(k => { o[k] = cleanMap(c[k]); });
+    o.votes = {}; if (isObj(c.votes)) Object.keys(c.votes).forEach(k => { o.votes[k] = cleanMap(c.votes[k]); });
+    o.relay = {}; if (isObj(c.relay)) Object.keys(c.relay).forEach(g => { const r = isObj(c.relay[g]) ? c.relay[g] : {}; o.relay[g] = { A: r.A === true, B: r.B === true, C: r.C === true }; });
     return o;
   }
   // 控制器：輪詢＋切關。deps 可換（測試用）
+  const RETRY_MS = 3000, MAX_TRIES = 10, STAGE_FAIL = "⚠ 切關沒送出，請檢查網路", STAGE_BUSY = "⚠ 切關送出中…";
   function controller(R, deps) {
     const api = deps.api, later = deps.setTimeout, IDS = STAGES.map(s => s.id), now = deps.now || Date.now;
-    let idx = 0, data = EMPTY, last = "", fails = 0, holdUntil = 0, want = "", sending = false;
+    let idx = 0, data = EMPTY, last = "", fails = 0, msgUntil = 0;
+    let chosen = "", tries = 0, sending = false, armed = false;   // chosen：講師按的關卡，伺服器確認前一直以它為準
+    const notice = t => { put(R.notice, t); hide(R.notice, !t); };
     function paint() { const sig = JSON.stringify(data) + "#" + idx; if (sig === last) return; last = sig; render(R, data, idx); }
     async function tick() {
       try {
         const c = normalize(await api.state());
         if (c) {
-          fails = 0; put(R.conn, "已連上"); data = c;
+          fails = 0; if (now() >= msgUntil) put(R.conn, "已連上"); data = c;
           const si = IDS.indexOf(c.stage);
-          if (si >= 0 && now() > holdUntil) idx = si;   // 講師剛按過鍵的幾秒內，不讓舊的伺服器狀態把畫面拉回去
+          if (chosen && si === idx) { chosen = ""; notice(""); }   // 伺服器確認了
+          if (si >= 0 && !chosen) idx = si;   // 還沒確認就不讓舊的伺服器狀態把畫面拉回去
           paint();
         } else if (++fails >= 2) put(R.conn, "連不到伺服器（學員照樣能闖關）");
       } catch (e) { last = ""; put(R.conn, "畫面更新出錯，下一輪再試"); }
       finally { later(tick, 3000 * (0.85 + (deps.rand ? deps.rand() : Math.random()) * 0.3)); }   // 不管發生什麼事，下一輪一定排
     }
-    async function go(i) {
-      i = Math.max(0, Math.min(IDS.length - 1, i)); if (i === idx) return;
-      idx = i; holdUntil = now() + 6000; paint();   // 先換畫面，再通知伺服器
-      want = IDS[idx]; if (sending) return;
-      sending = true;   // 一次只送一個、送完再看有沒有更新的：連按鍵時伺服器不會收到亂序的請求
-      try {
-        while (want) {
-          const w = want; want = "";
-          const r = await api.setStage(w);
-          put(R.notice, r ? "" : "⚠ 切關沒送出，再按一次"); hide(R.notice, !!r);
-          holdUntil = now() + 6000;
-        }
-      } finally { sending = false; }
+    function arm() {
+      if (armed) return; armed = true;
+      later(async () => { armed = false; if (!chosen) return; if (tries >= MAX_TRIES) { chosen = ""; notice(STAGE_FAIL); return; } await attempt(); }, RETRY_MS);
+    }
+    async function attempt() {   // 送一次；沒被確認就每 3 秒再送，最多 10 次
+      if (!chosen || sending) return; sending = true;
+      const id = chosen; tries++;
+      let r = null; try { r = await api.setStage(id); } catch (e) { r = null; }
+      sending = false;
+      if (chosen !== id) { if (chosen) attempt(); return; }   // 送的途中又按了別關：改送新的
+      notice(r ? "" : tries >= MAX_TRIES ? STAGE_FAIL : STAGE_BUSY);
+      arm();
+    }
+    function go(i) {
+      i = Math.max(0, Math.min(IDS.length - 1, i)); if (i === idx && !chosen) return;
+      idx = i; chosen = IDS[i]; tries = 0; paint();   // 先換畫面，再通知伺服器
+      return attempt();
     }
     async function reset(ask) {
       if (!ask()) return;
       const r = await api.reset();
-      put(R.conn, r ? "已清空，新的一堂課開始" : "沒清成功，再按一次");
-      if (r) { data = EMPTY; idx = 0; holdUntil = 0; last = ""; put(R.notice, ""); hide(R.notice, true); paint(); }
+      put(R.conn, r ? "已清空，新的一堂課開始" : "沒清成功，再按一次"); msgUntil = now() + 5000;
+      if (r) { data = EMPTY; idx = 0; chosen = ""; last = ""; notice(""); paint(); }
     }
     function key(e) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -227,14 +260,17 @@
       else if (e.key === "ArrowLeft") go(idx - 1);
       else { const id = keyStage(e.key), i = IDS.indexOf(id); if (i >= 0) go(i); }
     }
-    return { tick, go, key, reset, paint, idx: () => idx };
+    function rotate() { if (R.relayPages > 1) { R.relayPage = (R.relayPage + 1) % R.relayPages; last = ""; paint(); } }   // 接力小卡超過一頁：自動翻頁
+    return { tick, go, key, reset, paint, rotate, idx: () => idx };
   }
 
   window.SCREEN = { build, render, controller, normalize, stageLabel, keyStage, SHORT_URL };
 
   // ?mock=1：用固定假資料看版面，不碰伺服器（setStage／reset 也不會送出）
   function mockApi() {
-    const relay = {}; for (let n = 1; n <= 14; n++) relay[n] = { A: n % 2 === 0, B: n % 3 === 0, C: n % 5 === 0 }; for (let n = 1; n <= 6; n++) relay["線上" + n] = { A: true, B: n % 2 === 0, C: false };
+    const m = /[?&]groups=(\d+)/.exec(location.search), total = m ? Math.min(99, Number(m[1])) : 20, relay = {};
+    for (let i = 0; i < total - 6; i++) { const g = total > 20 ? (Math.floor(i / 5) + 1) + "-" + (i % 5 + 1) : String(i + 1); relay[g] = { A: i % 2 === 0, B: i % 3 === 0, C: i % 5 === 0 }; }
+    for (let n = 1; n <= Math.min(6, total); n++) relay["線上" + n] = { A: true, B: n % 2 === 0 };
     const votes = { "open.self": { A: 20, B: 14, C: 9, D: 6, E: 3, F: 1, G: 1 }, "open.agent": { goal: 30, tool: 22, steps: 12, start: 3 }, "end.vote": { goal: 25, tool: 20, steps: 10, start: 4 }, "end.self": { 1: 1, 2: 5, 3: 12, 4: 20, 5: 8, 6: 3, 7: 1 } };
     const d = { players: 50, levels: { 1: 8, 2: 9, 3: 13, 4: 20 }, ach: { grilled: 40, reviewer: 33, lv4: 20, caught3: 24, team: 18, plan: 5 }, votes, relay, self0: { 1: 20, 2: 15, 3: 8, 4: 4, 5: 2, 6: 1 }, self1: { 3: 10, 4: 25, 5: 10, 6: 4, 7: 1 } };
     return { state: async () => d, setStage: async () => ({ ok: true }), reset: async () => ({ ok: true }) };
@@ -249,6 +285,7 @@
       R.reset.blur();   // 用完就放開焦點：方向鍵與空白鍵不會誤觸它
     });
     R.reset.tabIndex = -1;
+    setInterval(ctl.rotate, 8000);
     ctl.paint(); ctl.tick();
   }
   if (!window.LU_SCREEN_TEST) boot();
