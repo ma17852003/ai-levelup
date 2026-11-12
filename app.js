@@ -47,7 +47,10 @@
     const tables = Array.from({ length: 14 }, (_, i) => String(i + 1)).concat(Array.from({ length: 10 }, (_, i) => "線上" + (i + 1)));
     const sel = h("select", { "aria-label": "桌號" }, tables.map(x => h("option", { value: x }, /線上/.test(x) ? x.replace("線上", "線上第 ") + " 組" : `第 ${x} 桌`)));
     let acct = "";
-    const accts = [["personal", "個人 Google 帳號（有 Skills）"], ["school", "學校帳號（做成 Gem）"]].map(([k, l]) => h("button", { class: "btn", "aria-pressed": "false", onclick: e => { acct = k; accts.forEach(x => x.setAttribute("aria-pressed", "false")); e.currentTarget.setAttribute("aria-pressed", "true"); } }, l));
+    const ticks = [], accts = [["personal", "個人 Google 帳號（有 Skills）"], ["school", "學校帳號（做成 Gem）"]].map(([k, l]) => {
+      const tk = h("span", { class: "tick", "aria-hidden": "true" }); ticks.push(tk);
+      return h("button", { class: "btn", "aria-pressed": "false", onclick: e => { acct = k; accts.forEach((x, i) => { x.setAttribute("aria-pressed", "false"); ticks[i].textContent = ""; }); e.currentTarget.setAttribute("aria-pressed", "true"); tk.textContent = "✓"; } }, tk, l);
+    });
     const msg = h("p", { "aria-live": "polite" });
     root.replaceChildren(h("section", { class: "stage" }, h("h2", {}, "報到"), h("p", {}, "左邊開這個網頁，右邊開 Gemini。"), h("label", {}, "你坐第幾桌？"), sel,
       h("p", {}, "你今天用哪個帳號登入 Gemini？"), accts, h("button", { class: "btn submit", onclick: async e => {
@@ -70,8 +73,16 @@
   }
   function askBtn(s) {   // 課程標準第 10 項：問 Gemini（不串 API，複製一段帶課程脈絡的提示詞）
     const text = `我正在上「AI 團隊自己組團」研習的「${s.title}」這一關（${s.ppt}）。我卡在：（寫你卡在哪）。請用不懂技術的人聽得懂的話，一步一步教我。`;
-    return h("button", { class: "btn", onclick: () => navigator.clipboard.writeText(text).catch(() => {}) }, "卡住了？複製問題去問 Gemini");
+    const msg = h("span", {}), box = h("div", { class: "paper" }), live = h("div", { "aria-live": "polite" }, msg, box);
+    const btn = h("button", { class: "btn", onclick: async () => {
+      let ok = false;
+      try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+      if (ok) { BLOCKS.flash(btn, "✓ 已複製，到右邊 Gemini 貼上", 3000); msg.textContent = ""; box.replaceChildren(); }
+      else { msg.textContent = "複製不了，請手動選取這段"; box.replaceChildren(text); }
+    } }, "卡住了？複製問題去問 Gemini");
+    return h("div", {}, btn, live);
   }
+  const stageLabel = id => ({ s0: "報到", open: "開場", end: "收尾" })[id] || (/^s[1-6]$/.test(id) ? `第 ${id.slice(1)} 關` : "");
   function walk(n, c, f) { if (n.className && String(n.className).split(" ").includes(c)) f(n); Array.from(n.children || []).forEach(k => walk(k, c, f)); }
   let started = false;
   function start() {
@@ -81,7 +92,7 @@
     root.replaceChildren(h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label), h("div", {}, hud.pix, hud.no)));
     STAGES.filter(s => s.id !== "s0" || !st.done["s0.first"]).forEach(s => {
       const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id },
-        h("p", { class: "step-no" }, `${s.time}｜PPT ${s.ppt}`), h("h2", {}, s.title), s.blocks.map(renderBlock), askBtn(s));
+        h("p", { class: "step-no" }, `${stageLabel(s.id)}｜${s.time}｜PPT ${s.ppt}`), h("h2", {}, s.title), s.blocks.map(renderBlock), askBtn(s));
       const demo = s.blocks.find(b => b.type === "demo"), wraps = [];
       walk(el, "pixel-wrap", w => wraps.push(w));
       if (demo) wraps.forEach((w, i) => { if (demo.cards[i]) w.append(AVATAR.el(demo.cards[i].lv, 64)); });
@@ -90,7 +101,13 @@
     renderHud(); snapshot(); poll();
   }
   // ── 輪詢：講師上到哪一關（只換 class，不捲動）＋接力 ──
-  let lastStage = "";
+  let lastStage = "", lastRelay = null;
+  // 下一輪等多久：平常 15 秒；只有 B／C 棒在等前一棒的文字時才 5 秒（前一棒文字到了就回 15 秒；A 棒不用密集）
+  const PREV = { B: "A", C: "B" };
+  function nextPollMs(st, relay) {
+    const prev = PREV[st.relayRole];
+    return st.relayGroup && prev && !(relay && relay[prev]) ? 5000 : 15000;
+  }
   async function poll() {
     let again = true;
     try {
@@ -104,15 +121,15 @@
         if (stageEls[j.stage]) cls(stageEls[j.stage], "now", true);
         lastStage = j.stage;
       }
-      if (j && j.relay && window.RELAY_UPDATE) window.RELAY_UPDATE(j.relay);
+      if (j && j.relay) { lastRelay = j.relay; if (window.RELAY_UPDATE) window.RELAY_UPDATE(j.relay); }
       // 講師按了新的一堂課。resetId 是數字（含 0）才清；undefined＝入座沒連上，不動
       if (j && typeof st.resetId === "number" && Number(j.resetId) > st.resetId) { again = false; st = fresh(); save(); API.store.set("lu-q-" + S, []); location.reload(); return; }
       API.flush();
     } catch (e) { /* 單輪失敗不影響下一輪 */ }
     finally {
-      if (again) { const base = st.relayGroup ? 4000 : 10000; setTimeout(poll, base * (0.85 + Math.random() * 0.3)); }   // 錯開 ±15%
+      if (again) { setTimeout(poll, nextPollMs(st, lastRelay) * (0.85 + Math.random() * 0.3)); }   // 錯開 ±15%
     }
   }
-  window.APP = { ctx, poll, state: () => st };   // 測試與除錯用
+  window.APP = { ctx, poll, nextPollMs, state: () => st };   // 測試與除錯用
   st.team ? start() : seat(document.getElementById("app"));
 })();

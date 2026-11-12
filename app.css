@@ -9,3 +9,7 @@
 img, svg { max-width: 100%; }
 a.btn { display: inline-flex; align-items: center; text-decoration: none; box-sizing: border-box; }
 .levelup { background: color-mix(in srgb, var(--bg-deep) 98%, transparent); backdrop-filter: blur(6px); }
+.btn[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.tick { display: inline-block; width: 1.2em; text-align: left; }
+.paper:empty { display: none; }

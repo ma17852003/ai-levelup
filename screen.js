@@ -1,6 +1,6 @@
 // 投影幕：每 3 秒讀 /lu-state；內容沒變就不動 DOM（只改數字與寬度，節點固定）。畫面上永遠沒有編號或名字。
 (function () {
-  const SHORT_URL = "（短網址課前填）";   // 課前改成真正的短網址
+  const SHORT_URL = "ma17852003.github.io/ai-levelup";   // 之後換成真正的短網址
   const VOTE_OF = { open: ["open.self", "open.agent"], end: ["end.vote", "end.self"] };   // s1 沒有投票；s3.guess 是猜題不是投票，不畫
   const PILLS = [["A", "寫手"], ["B", "審查員"], ["C", "格式員"]];
 
@@ -11,6 +11,18 @@
   function sty(el, prop, v) { el._s = el._s || {}; if (el._s[prop] !== v) { el._s[prop] = v; el.style[prop] = v; } }
   function hide(el, yes) { if (el._h !== !!yes) { el._h = !!yes; el.hidden = !!yes; } }
   const isObj = x => !!x && typeof x === "object" && !Array.isArray(x);
+  // 頂列關卡名：跟簡報同編號。s1–s6 ＝ 第 N 關；報到／開場／收尾不編號
+  function stageLabel(s) {
+    const m = /^s([1-9])$/.exec(s.id);
+    if (m) return `第 ${m[1]} 關｜${s.title}｜${s.time}`;
+    if (s.id === "open" || s.id === "end") return `${s.id === "open" ? "開場" : "收尾"}｜${s.title.split("：").slice(1).join("：")}｜${s.time}`;
+    return `${s.title}｜${s.time}`;
+  }
+  // 按鍵 → 關卡 id（沒對應就 null）
+  function keyStage(k) {
+    if (k === "0") return "s0"; if (/^[1-6]$/.test(k)) return "s" + k;
+    k = String(k).toLowerCase(); return k === "o" ? "open" : k === "e" ? "end" : null;
+  }
   const num = (o, k) => Number((o && o[k]) || 0);
   const max1 = (...xs) => Math.max(1, ...xs);
 
@@ -68,10 +80,11 @@
 
     // 底列
     const bot = h("footer", "bottom"), url = h("div", "b-url"), code = h("div", "b-code");
-    url.append(h("span", "b-k", "課堂入口"), h("span", "b-v", SHORT_URL));
+    url.append(h("span", "b-k", "闖關網頁"), h("span", "b-v", SHORT_URL));
     code.append(h("span", "b-k", "場次碼"), h("span", "b-v", String((window.LU_CFG && window.LU_CFG.session) || "")));
     R.reset = h("button", "reset", "新的一堂課"); R.reset.type = "button";
-    bot.append(url, code, R.reset);
+    const hint = h("div", "b-hint", "← → 換關｜0 報到 O 開場 1–6 關 E 收尾");
+    bot.append(url, code, hint, R.reset);
     root.append(top, main, bot);
     return R;
   }
@@ -149,7 +162,7 @@
   // 把整份資料畫上去。idx＝目前關卡（STAGES 的位置）。可以重複呼叫：資料一樣就一次寫入都沒有
   function render(R, c, idx) {
     const s = STAGES[idx];
-    put(R.stage, `${s.title}｜${s.time}`);
+    put(R.stage, stageLabel(s));
     put(R.players, `全班 ${num(c, "players")} 人`);
     const mode = s.id === "s5" ? "relay" : VOTE_OF[s.id] ? "votes" : "levels";
     hide(R.levels, mode !== "levels"); hide(R.votes, mode !== "votes"); hide(R.relay, mode !== "relay");
@@ -211,12 +224,12 @@
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === "ArrowRight") go(idx + 1);
       else if (e.key === "ArrowLeft") go(idx - 1);
-      else if (/^[1-9]$/.test(e.key)) go(Number(e.key) - 1);
+      else { const id = keyStage(e.key), i = IDS.indexOf(id); if (i >= 0) go(i); }
     }
     return { tick, go, key, reset, paint, idx: () => idx };
   }
 
-  window.SCREEN = { build, render, controller, normalize, SHORT_URL };
+  window.SCREEN = { build, render, controller, normalize, stageLabel, keyStage, SHORT_URL };
 
   // ?mock=1：用固定假資料看版面，不碰伺服器（setStage／reset 也不會送出）
   function mockApi() {

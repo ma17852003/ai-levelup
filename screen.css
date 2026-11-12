@@ -117,7 +117,7 @@ body { font: 1.125rem/1.35 var(--font-sans); }
   .v-end .vote-box:nth-child(1), .v-end .vote-box:nth-child(2), .v-end .cmp { grid-column: 1; grid-row: auto; }
   .v-open .bar-row { grid-template-columns: 12.5rem minmax(0, 1fr) 2.5rem; }
   /* 收尾關有三塊（兩題＋前後對照）：直式疊起來比較高，給主畫面多一點、成就牆少一點，列高收緊 */
-  .main:has(.v-end:not([hidden])) { grid-template-rows: minmax(0, 73fr) minmax(0, 27fr); }
+  .main:has(.v-end:not([hidden])) { grid-template-rows: minmax(0, 75fr) minmax(0, 25fr); }
   .v-end { gap: .375rem; }
   .v-end .vote-box h3 { margin-bottom: .125rem; }
   .v-end .bars { gap: .125rem; }
@@ -132,3 +132,9 @@ body { font: 1.125rem/1.35 var(--font-sans); }
   .c2 .relay-row, .c3 .relay-row { grid-template-columns: 4.5rem minmax(0, 1fr); gap: .25rem; }
   .c2 .pill { font-size: .75rem; } .c2 .r-pills { gap: .25rem; } .c2 .r-name { font-size: .875rem; }
 }
+
+.b-hint { font-size: .8125rem; color: var(--fg-dim); opacity: .8; white-space: nowrap; }
+.bottom { gap: 1rem; flex-wrap: nowrap; }
+.b-url { min-width: 0; white-space: nowrap; } .b-url .b-v { font-size: 1.25rem; } .b-code .b-v { font-size: 1.5rem; }
+.b-code { white-space: nowrap; }
+@media (orientation: portrait) { .bottom { flex-wrap: wrap; } .b-url { flex-basis: 100%; } .b-hint { white-space: normal; } }

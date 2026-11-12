@@ -3,6 +3,15 @@
 // 每次都呼叫 ctx.st() 取最新狀態，不快取、不修改它回傳的物件
 (function () {
   const h = (tag, attrs, ...kids) => { const e = document.createElement(tag); Object.entries(attrs || {}).forEach(([k, v]) => { if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); }); kids.flat().forEach(k => e.append(k && k.nodeType ? k : String(k == null ? "" : k))); return e; };
+  // 按鈕回饋：flash＝暫時換字（預設 3 秒）；press＝送出類按鈕（工作先做完，按鈕停用 600ms 並顯示「送出中…」；work 回傳 false＝沒送成，不閃）
+  function flash(btn, text, ms) { if (btn.__old == null) btn.__old = btn.textContent; btn.textContent = text; clearTimeout(btn.__t); btn.__t = setTimeout(() => { btn.textContent = btn.__old; btn.__old = null; }, ms || 3000); }
+  function press(btn, work) {
+    if (btn.disabled) return;
+    if (work() === false) return;
+    const keep = btn.disabled, old = btn.textContent;
+    btn.disabled = true; btn.textContent = "送出中…";
+    setTimeout(() => { btn.textContent = old; if (!keep) btn.disabled = false; }, 600);
+  }
   function textOf(luc, from) {
     const v = luc[from];
     if (!Array.isArray(v)) return v;
@@ -22,10 +31,10 @@
     copy(b, ctx) {
       const text = textOf(ctx.luc, b.from), msg = h("span", { "aria-live": "polite" }), manual = h("span", {});
       return h("div", { class: "block" }, h("p", {}, b.label), h("div", { class: "paper" }, text),
-        h("button", { class: "btn copy", onclick: async () => {
-          let ok = false;
+        h("button", { class: "btn copy", onclick: async e => {
+          const btn = e.currentTarget; let ok = false;
           try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
-          if (ok) { msg.textContent = "已複製，到 Gemini 貼上"; manual.replaceChildren(); if (b.id) ctx.done(b.id); return; }
+          if (ok) { msg.textContent = "✓ 已複製，到 Gemini 貼上"; flash(btn, "✓ 已複製", 3000); manual.replaceChildren(); if (b.id) ctx.done(b.id); return; }
           msg.textContent = "複製沒成功，請手動選取上面文字複製";   // 失敗不算完成
           if (b.id) manual.replaceChildren(" ", h("button", { class: "btn small manual", onclick: () => { ctx.done(b.id); msg.textContent = "✓ 已記錄手動複製"; manual.replaceChildren(); } }, "我已手動複製"));
         } }, "複製"), " ", msg, manual);
@@ -35,10 +44,10 @@
       const msg = h("span", { "aria-live": "polite" });
       ta.addEventListener("input", () => ctx.sheet(b.field, ta.value));   // 每打一個字都存本機，重新整理不會不見
       return h("div", { class: "block" }, h("label", {}, b.label), ta,
-        h("button", { class: "btn submit", onclick: () => {
-          if (ta.value.trim().length < (b.min || 1)) { msg.className = "bad-msg"; msg.textContent = `再多寫一點（至少 ${b.min} 個字）`; return; }
+        h("button", { class: "btn submit", onclick: e => press(e.currentTarget, () => {
+          if (ta.value.trim().length < (b.min || 1)) { msg.className = "bad-msg"; msg.textContent = `再多寫一點（至少 ${b.min} 個字）`; return false; }
           ctx.done(b.id); msg.className = "ok-msg"; msg.textContent = "✓ 交件完成";
-        } }, "交件 EXP"), " ", msg);
+        }) }, "交件 EXP"), " ", msg);
     },
     check(b, ctx) {
       return h("div", { class: "block" }, b.items.map(it => {
@@ -56,21 +65,22 @@
     vote(b, ctx) {
       const chosen = new Set(), msg = h("span", { "aria-live": "polite" });
       let submit = null;
-      const btns = b.options.map(o => h("button", { class: "btn", "aria-pressed": "false", onclick: () => {
+      const ticks = b.options.map(() => h("span", { class: "tick", "aria-hidden": "true" }));   // 選中時顯示 ✓（位置固定，不推動文字）
+      const mark = (i, on) => { btns[i].setAttribute("aria-pressed", String(on)); ticks[i].textContent = on ? "✓" : ""; };
+      const btns = b.options.map((o, i) => h("button", { class: "btn", "aria-pressed": "false", onclick: () => {
         if (submit) { submit.disabled = false; }   // 改了選項才能再送，雙擊不會送兩次
         const was = chosen.has(o.key);
-        if (!b.multi) { chosen.clear(); btns.forEach(x => x.setAttribute("aria-pressed", "false")); }
+        if (!b.multi) { chosen.clear(); b.options.forEach((_, k) => mark(k, false)); }
         was ? chosen.delete(o.key) : chosen.add(o.key);
-        btns[b.options.indexOf(o)].setAttribute("aria-pressed", String(chosen.has(o.key)));
-      } }, o.label));
-      submit = h("button", { class: "btn submit", onclick: () => {
-        if (submit.disabled) return;
-        if (!chosen.size) { msg.textContent = "先選一個"; return; }
+        mark(i, chosen.has(o.key));
+      } }, ticks[i], o.label));
+      submit = h("button", { class: "btn submit", onclick: () => press(submit, () => {
+        if (!chosen.size) { msg.textContent = "先選一個"; return false; }
         const value = Array.from(chosen).join(",");
         ctx.send({ kind: "vote", key: b.id, value });
         const extra = b.id === "open.self" ? { self0: Math.max(...Array.from(chosen).map(k => "ABCDEFG".indexOf(k) + 1)) } : b.id === "end.self" ? { self1: Number(value) } : {};
-        ctx.done(b.id, extra); submit.disabled = true; msg.textContent = "已送出（要改可以再按一次重新送出）";
-      } }, "送出");
+        ctx.done(b.id, extra); submit.disabled = true; msg.textContent = "✓ 已送出（要改可以再按一次重新送出）";
+      }) }, "送出");
       if ((ctx.st().done || {})[b.id]) msg.textContent = "✓ 已送出";
       return h("div", { class: "block" }, h("p", {}, b.q), btns, submit, " ", msg);
     },
@@ -97,15 +107,16 @@
     pass(b, ctx) {
       const sel = h("select", { "aria-label": "過了幾題" }, [0, 1, 2, 3, 4, 5].map(n => h("option", { value: n }, n + " 題")));
       sel.value = String(ctx.st().pass || 0);
+      const msg = h("span", { "aria-live": "polite", class: "ok-msg" }, (ctx.st().done || {})[b.id] ? `✓ 已交件：過了 ${ctx.st().pass || 0} 題` : "");
       return h("div", { class: "block" }, h("label", {}, "鄰座唸你寫的題目、你自己打字、鄰座打分：你的 Gem 過了幾題？"), sel,
-        h("button", { class: "btn submit", onclick: () => ctx.done(b.id, { pass: Number(sel.value) }) }, "交件 EXP"),
+        h("button", { class: "btn submit", onclick: e => press(e.currentTarget, () => { ctx.done(b.id, { pass: Number(sel.value) }); msg.textContent = `✓ 已交件：過了 ${sel.value} 題`; }) }, "交件 EXP"), " ", msg,
         h("p", { class: "step-no" }, "過 4 題以上就升到 Lv.4 專員；沒過的題目，回家補進指令或參考資料"));
     },
     caught(b, ctx) {
       const boxes = b.items.map((x, i) => { const c = h("input", { type: "checkbox", id: "cg" + i }); return [c, h("label", { for: "cg" + i }, c, " ", x)]; });
       const st = ctx.st(), saved = h("p", { class: "ok-msg", "aria-live": "polite" }, (st.done || {})[b.id] && typeof st.caught === "number" ? `✓ 已送出：抓到 ${st.caught} 個` : "");
       return h("div", { class: "block" }, h("p", {}, "1:35 揭曉後：你們這組抓到了哪幾個？"), boxes.map(x => x[1]),
-        h("button", { class: "btn submit", onclick: () => { const n = boxes.filter(x => x[0].checked).length; ctx.done(b.id, { caught: n }); saved.textContent = `✓ 已送出：抓到 ${n} 個`; } }, "送出"), saved);
+        h("button", { class: "btn submit", onclick: e => press(e.currentTarget, () => { const n = boxes.filter(x => x[0].checked).length; ctx.done(b.id, { caught: n }); saved.textContent = `✓ 已送出：抓到 ${n} 個`; }) }, "送出"), saved);
     },
     relay(b, ctx) {
       const wrap = h("div", { class: "block" });
@@ -121,12 +132,11 @@
           h("label", {}, "把 AI 做好的成果整段貼在這裡，按「交棒」"), ta, h("div", {}, count),
           go, " ", msg);
         ta.addEventListener("input", () => { count.textContent = `${ta.value.length} / 6000 字`; go.disabled = false; });   // 改了內容才能再交
-        go.addEventListener("click", () => {
-            if (go.disabled) return;
-            if (ta.value.trim().length < 20) { msg.className = "bad-msg"; msg.textContent = "成果太短，整段貼上"; return; }
+        go.addEventListener("click", () => press(go, () => {
+            if (ta.value.trim().length < 20) { msg.className = "bad-msg"; msg.textContent = "成果太短，整段貼上"; return false; }
             ctx.send({ kind: "relay", team: st.relayGroup, key: st.relayRole, value: ta.value.slice(0, 6000) });
-            ctx.done("s5.relay"); go.disabled = true; msg.className = "ok-msg"; msg.textContent = "已交棒。要改就修改內容再按一次";
-        });
+            ctx.done("s5.relay"); go.disabled = true; msg.className = "ok-msg"; msg.textContent = "✓ 已交棒。要改就修改內容再按一次";
+        }));
         window.RELAY_UPDATE = texts => { const prev = r[2] && texts[r[2]]; if (prev && prevBox.textContent !== prev) prevBox.textContent = prev; };
       }
       if (ctx.st().relayGroup && ctx.st().relayRole) { body(); return wrap; }
@@ -144,24 +154,24 @@
       const inputs = f.map(([k, l]) => { const i = h("input", { type: "text", "aria-label": l }); i.value = ((ctx.st().sheet || {}).card || {})[k] || ""; return [k, l, i]; });
       const msg = h("span", { "aria-live": "polite" });
       return h("div", { class: "block" }, h("p", {}, "我的小隊名片（設計單背面最上面）"), inputs.map(([k, l, i]) => h("label", {}, l, i)),
-        h("button", { class: "btn submit", onclick: () => { ctx.sheet("card", Object.fromEntries(inputs.map(([k, , i]) => [k, i.value]))); ctx.done(b.id); msg.className = "ok-msg"; msg.textContent = "✓ 已存名片"; } }, "存名片"), " ", msg);
+        h("button", { class: "btn submit", onclick: e => press(e.currentTarget, () => { ctx.sheet("card", Object.fromEntries(inputs.map(([k, , i]) => [k, i.value]))); ctx.done(b.id); msg.className = "ok-msg"; msg.textContent = "✓ 已存名片"; }) }, "存名片"), " ", msg);
     },
     plan(b, ctx) {
       const w = [["w1", "第 1 週：把小隊給哪位同事試用？寫他的名字"], ["w2", "第 2 週：從 Skill 包再加哪一份？"], ["w3", "第 3 週：挑哪一件真的工作讓小隊跑一次？"]];
       const inputs = w.map(([k, l]) => { const i = h("input", { type: "text", "aria-label": l }); i.value = ((ctx.st().sheet || {}).plan || {})[k] || ""; return [k, l, i]; });
       const msg = h("span", { "aria-live": "polite" });
       return h("div", { class: "block" }, inputs.map(([k, l, i]) => h("label", {}, l, i)),
-        h("button", { class: "btn submit", onclick: () => {
-          if (!inputs[0][2].value.trim()) { msg.className = "bad-msg"; msg.textContent = "第 1 週一定要寫一位同事的名字"; return; }
+        h("button", { class: "btn submit", onclick: e => press(e.currentTarget, () => {
+          if (!inputs[0][2].value.trim()) { msg.className = "bad-msg"; msg.textContent = "第 1 週一定要寫一位同事的名字"; return false; }
           ctx.sheet("plan", Object.fromEntries(inputs.map(([k, , i]) => [k, i.value]))); ctx.done(b.id); msg.className = "ok-msg"; msg.textContent = "✓ 已存計畫";
-        } }, "存計畫"), " ", msg,
+        }) }, "存計畫"), " ", msg,
         h("a", { class: "btn copy", href: "takeaway.html?s=" + encodeURIComponent(window.LU_CFG.session), target: "_blank", rel: "noopener" }, "產生我的設計單（可列印）"));
     },
     demo(b, ctx) {
       return h("div", { class: "block" }, b.cards.map(c => h("div", { class: "stage demo" },
         h("div", { class: "pixel-wrap", "aria-hidden": "true" }), h("strong", {}, `Lv.${c.lv}　${c.title}`), h("p", {}, c.note),
-        c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: () => ctx.done(b.id) }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
+        c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: e => { ctx.done(b.id); flash(e.currentTarget, "✓ 已打開", 3000); } }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
     }
   };
-  window.BLOCKS = { h, R, textOf };
+  window.BLOCKS = { h, R, textOf, flash, press };
 })();
