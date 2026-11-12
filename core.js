@@ -25,7 +25,7 @@
   const ACH = [
     { id: "grilled", name: "被拷問到底", ok: st => !!st.done["s1.brief"] },
     { id: "reviewer", name: "審查員上線", ok: st => !!st.done["s2.reviewer"] },
-    { id: "lv4", name: "考過 Lv.4", ok: st => (st.pass || 0) >= 4 },
+    { id: "lv4", name: "考試答對 4 題", ok: st => (st.pass || 0) >= 4 },
     { id: "caught3", name: "抓到 3 個錯", ok: st => (st.caught || 0) >= 3 },
     { id: "team", name: "小隊成軍", ok: st => !!st.done["s5.team"] },
     { id: "plan", name: "三週計畫寫好", ok: st => !!st.done["end.plan"] }

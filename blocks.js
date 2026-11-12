@@ -115,7 +115,7 @@
         report(ctx, msg, "✓ 已送出（要改可以再按一次重新送出）", Promise.all([p, q])); reveal.textContent = revealFor();
       }) }), "送出");
       ((ctx.st().picks || {})[b.id] || []).forEach(k => { const i = b.options.findIndex(o => o.key === k); if (i >= 0) { chosen.add(k); mark(i, true); } });   // 重新整理後還原選項
-      if ((ctx.st().done || {})[b.id]) { msg.textContent = "✓ 已送出"; reveal.textContent = revealFor(); }
+      if ((ctx.st().done || {})[b.id]) { msg.textContent = "✓ 已送出（要改可以再按一次重新送出）"; submit.disabled = true; reveal.textContent = revealFor(); }   // 跟剛送完一樣：鎖住，改選項才再開
       return h("div", { class: "block" }, h("p", {}, b.q), btns, submit, " ", msg, reveal);
     },
     sort(b, ctx) {

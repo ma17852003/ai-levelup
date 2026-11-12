@@ -68,7 +68,8 @@
 
     R.relay = h("section", "panel relay");
     R.relayHead = h("div", "relay-head"); R.relayPageInd = h("span", "relay-page", ""); R.relayPageInd.hidden = true; R.relayPageInd._h = true;
-    R.relayHead.append(h("h3", "", "三人接力：抓出資料裡的 3 個錯"), R.relayPageInd); R.relayPage = 0; R.relayPages = 1;
+    R.relayLegend = h("span", "relay-legend", "A 寫手　B 審查員　C 格式員（線上組只有 A、B）"); R.relayLegend.hidden = true; R.relayLegend._h = true;
+    R.relayHead.append(h("h3", "", "三人接力：抓出資料裡的 3 個錯"), R.relayLegend, R.relayPageInd); R.relayPage = 0; R.relayPages = 1;
     R.relayList = h("div", "relay-list"); R.relayRows = {}; R.relayKeys = "";
     R.relayEmpty = h("div", "relay-empty", "還沒有小組開始接力");
     R.relay.append(R.relayHead, R.relayList, R.relayEmpty);
@@ -157,7 +158,7 @@
           row._p = rolesOf(g).map(([k]) => { const d = h("i", "dot", k); row.append(d); return d; });
         } else {
           row = h("div", "relay-row"); const pills = h("span", "r-pills");
-          row.append(h("span", "r-name", "第 " + g + " 組"), pills);
+          row.append(h("span", "r-name", isOnline(g) ? g.replace("線上", "線上 ") : "第 " + g + " 組"), pills);   // 線上組名較長，不加「第…組」
           row._p = rolesOf(g).map(([k, l]) => { const p = h("span", "pill", "○ " + l); pills.append(p); return p; });
         }
         R.relayRows[g] = row; return row;
@@ -165,6 +166,7 @@
     }
     cls(R.relayList, "relay-list" + (cards ? " cards" : n > 8 ? " c2" : ""));
     hide(R.relayEmpty, n > 0);
+    hide(R.relayLegend, !cards);   // 小卡只寫字母，要附對照
     R.relayPages = cards ? Math.ceil(n / PAGE_CAP) : 1;
     if (R.relayPage >= R.relayPages) R.relayPage = 0;
     put(R.relayPageInd, R.relayPages > 1 ? `第 ${R.relayPage + 1}/${R.relayPages} 頁` : ""); hide(R.relayPageInd, R.relayPages <= 1);
@@ -210,11 +212,11 @@
     return o;
   }
   // 控制器：輪詢＋切關。deps 可換（測試用）
-  const RETRY_MS = 3000, MAX_TRIES = 10, STAGE_FAIL = "⚠ 切關沒送出，請檢查網路", STAGE_BUSY = "⚠ 切關送出中…";
+  const RETRY_MS = 3000, MAX_TRIES = 10, STAGE_FAIL = "⚠ 切關沒送出，請檢查網路", STAGE_BUSY = "⚠ 切關送出中…", STAGE_SENT = "⚠ 切關已送出，但讀不到全班狀態";
   function controller(R, deps) {
     const api = deps.api, later = deps.setTimeout, IDS = STAGES.map(s => s.id), now = deps.now || Date.now;
     let idx = 0, data = EMPTY, last = "", fails = 0, msgUntil = 0;
-    let chosen = "", tries = 0, sending = false, armed = false;   // chosen：講師按的關卡，伺服器確認前一直以它為準
+    let chosen = "", tries = 0, sending = false, armed = false, lastOk = false;   // lastOk：最後一次 setStage 本身有沒有成功   // chosen：講師按的關卡，伺服器確認前一直以它為準
     const notice = t => { put(R.notice, t); hide(R.notice, !t); };
     function paint() { const sig = JSON.stringify(data) + "#" + idx; if (sig === last) return; last = sig; render(R, data, idx); }
     async function tick() {
@@ -232,13 +234,13 @@
     }
     function arm() {
       if (armed) return; armed = true;
-      later(async () => { armed = false; if (!chosen) return; if (tries >= MAX_TRIES) { chosen = ""; notice(STAGE_FAIL); return; } await attempt(); }, RETRY_MS);
+      later(async () => { armed = false; if (!chosen) return; if (tries >= MAX_TRIES) { chosen = ""; notice(lastOk ? STAGE_SENT : STAGE_FAIL); return; } await attempt(); }, RETRY_MS);
     }
     async function attempt() {   // 送一次；沒被確認就每 3 秒再送，最多 10 次
       if (!chosen || sending) return; sending = true;
       const id = chosen; tries++;
       let r = null; try { r = await api.setStage(id); } catch (e) { r = null; }
-      sending = false;
+      sending = false; lastOk = !!r;
       if (chosen !== id) { if (chosen) attempt(); return; }   // 送的途中又按了別關：改送新的
       notice(r ? "" : tries >= MAX_TRIES ? STAGE_FAIL : STAGE_BUSY);
       arm();
@@ -269,8 +271,8 @@
   // ?mock=1：用固定假資料看版面，不碰伺服器（setStage／reset 也不會送出）
   function mockApi() {
     const m = /[?&]groups=(\d+)/.exec(location.search), total = m ? Math.min(99, Number(m[1])) : 20, relay = {};
-    for (let i = 0; i < total - 6; i++) { const g = total > 20 ? (Math.floor(i / 5) + 1) + "-" + (i % 5 + 1) : String(i + 1); relay[g] = { A: i % 2 === 0, B: i % 3 === 0, C: i % 5 === 0 }; }
-    for (let n = 1; n <= Math.min(6, total); n++) relay["線上" + n] = { A: true, B: n % 2 === 0 };
+    for (let i = 0; i < total - 6; i++) { const g = (Math.floor(i / 3) + 12) % 14 + 1 + "-" + (i % 3 + 1); relay[g] = { A: i % 2 === 0, B: i % 3 === 0, C: i % 5 === 0 }; }
+    for (let n = 1; n <= Math.min(6, total); n++) relay["線上" + (n + 4) + "-1"] = { A: true, B: n % 2 === 0 };   // 跟真的組別代碼同格式（最長的「線上10-1」）
     const votes = { "open.self": { A: 20, B: 14, C: 9, D: 6, E: 3, F: 1, G: 1 }, "open.agent": { goal: 30, tool: 22, steps: 12, start: 3 }, "end.vote": { goal: 25, tool: 20, steps: 10, start: 4 }, "end.self": { 1: 1, 2: 5, 3: 12, 4: 20, 5: 8, 6: 3, 7: 1 } };
     const d = { players: 50, levels: { 1: 8, 2: 9, 3: 13, 4: 20 }, ach: { grilled: 40, reviewer: 33, lv4: 20, caught3: 24, team: 18, plan: 5 }, votes, relay, self0: { 1: 20, 2: 15, 3: 8, 4: 4, 5: 2, 6: 1 }, self1: { 3: 10, 4: 25, 5: 10, 6: 4, 7: 1 } };
     return { state: async () => d, setStage: async () => ({ ok: true }), reset: async () => ({ ok: true }) };

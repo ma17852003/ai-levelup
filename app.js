@@ -14,6 +14,12 @@
     });
     const out = Object.assign({}, b, a, { sheet, sheetAt, done: Object.assign({}, b.done, a.done), picks: Object.assign({}, b.picks, a.picks),
       pass: Math.max(a.pass || 0, b.pass || 0), caught: Math.max(a.caught || 0, b.caught || 0) });
+    // 兩邊不是同一堂課（resetId 不同）：闖關進度整包用 resetId 比較大的那一邊，不能把上一堂的進度合回來；填的字（sheet）照時間戳合
+    if (typeof a.resetId === "number" && typeof b.resetId === "number" && a.resetId !== b.resetId) {
+      const win = a.resetId > b.resetId ? a : b;
+      ["done", "pass", "caught", "picks", "player", "relayGroup", "relayRole", "self0", "self1", "resetId"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
+      return out;
+    }
     ["team", "acct", "player", "resetId", "relayGroup", "relayRole", "self0", "self1"].forEach(k => {
       const mine = a[k]; if (mine === undefined || mine === "" || mine === 0) { if (b[k] !== undefined && b[k] !== "" && !(b[k] === 0 && mine !== undefined)) out[k] = b[k]; else if (mine !== undefined) out[k] = mine; }
     });
@@ -31,7 +37,7 @@
   function flushed() { const p = Promise.resolve(API.flush()); p.then(notifyFlush, () => {}); return p; }
   const ctx = {
     st: () => st, luc: window.LUC,
-    done(id, extra) { const before = st; st = LU.markDone(st, id, extra); save(); renderHud(); const up = LU.levelUp(before, st); if (up) showLevelUp(LU.level(before), up); return snapshot(); },
+    done(id, extra) { const before = st; st = LU.markDone(st, id, extra); save(); renderHud(); const up = LU.levelUp(before, st); if (up) showLevelUps(LU.level(before), up); return snapshot(); },
     sheet(field, value) { st = Object.assign({}, st, { sheet: Object.assign({}, st.sheet, { [field]: value }), sheetAt: Object.assign({}, st.sheetAt, { [field]: Date.now() }) }); save(); },
     set(patch) { st = Object.assign({}, st, patch); save(); },   // 接力選組別／角色用
     send(item) { API.enqueue(item); return flushed(); },
@@ -56,10 +62,16 @@
   }
   // ── 升級畫面：只播一次，按繼續才關（Esc 也可關；開著時背景 inert） ──
   let openUps = 0;
-  function showLevelUp(from, to) {
+  // 一次跳好幾級（例如先過考試、後建 Gem：Lv.2 → Lv.4）：一級一張，按「繼續」才出下一張
+  function showLevelUps(from, to) {
+    const steps = []; for (let l = from + 1; l <= to; l++) steps.push(l);
+    const next = () => { const l = steps.shift(); if (l) showLevelUp(l - 1, l, next); };
+    next();
+  }
+  function showLevelUp(from, to, onClose) {
     const A = LU.LEVELS[from - 1], B = LU.LEVELS[to - 1], prev = document.activeElement;
     const appEl = document.getElementById("app"), big = h("div", { class: "pix-big" });
-    const close = () => { ov.remove(); if (--openUps <= 0) appEl.inert = false; if (prev && prev.focus) prev.focus(); };
+    const close = () => { ov.remove(); if (--openUps <= 0) appEl.inert = false; if (prev && prev.focus) prev.focus(); if (onClose) onClose(); };
     const btn = h("button", { class: "btn submit", onclick: close }, "繼續 →");
     big.append(AVATAR.el(to, 160));
     const ov = h("div", { class: "levelup", role: "dialog", "aria-modal": "true", "aria-label": `升級到 Lv.${to}` },
@@ -69,6 +81,14 @@
   }
   // localStorage 被擋：進度只活在這一頁的記憶體，重新整理就沒了——要明講
   const banner = () => API.store.persistent && !API.store.persistent() ? h("p", { class: "bad-msg banner", role: "alert" }, "這台電腦擋住了瀏覽器存檔：請不要重新整理頁面，否則要重新報到") : "";
+  // 別的分頁有新進度：不自動重新整理（會搶走打字的焦點，離線時還會變成瀏覽器的離線頁）。只更新 HUD，另外給一條可關掉的提示
+  const online = () => typeof navigator === "undefined" || navigator.onLine !== false;
+  const sync = { bar: h("div", { class: "sync-bar hide", role: "status" }), btn: null };
+  sync.btn = h("button", { class: "btn small", onclick: () => { if (online()) location.reload(); } }, "按這裡更新畫面");
+  sync.bar.append("另一個分頁有新進度，", sync.btn, " ", h("button", { class: "btn small", "aria-label": "關閉提示", onclick: () => cls(sync.bar, "hide", true) }, "關閉"));
+  function syncBtn() { const on = online(); sync.btn.textContent = on ? "按這裡更新畫面" : "網路恢復後再按"; sync.btn.disabled = !on; }
+  function showSync() { syncBtn(); cls(sync.bar, "hide", false); }
+  if (window.addEventListener) { window.addEventListener("online", syncBtn); window.addEventListener("offline", syncBtn); }
   // ── 入座 ──
   function seat(root) {
     const tables = Array.from({ length: 14 }, (_, i) => String(i + 1)).concat(Array.from({ length: 10 }, (_, i) => "線上" + (i + 1)));
@@ -116,7 +136,7 @@
     if (started) return;   // 只准啟動一次，不會長出兩條輪詢
     started = true;
     const root = document.getElementById("app");
-    root.replaceChildren(banner(), h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)));
+    root.replaceChildren(banner(), sync.bar, h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)));
     let firstH2 = null;
     STAGES.forEach(s => {   // 報到那一關交件後也留著，可以改、可以再交
       const h2 = h("h2", { tabindex: "-1" }, s.title); if (!firstH2) firstH2 = h2;
@@ -154,7 +174,7 @@
       if (j && j.relay) { lastRelay = j.relay; if (window.RELAY_UPDATE) window.RELAY_UPDATE(j.relay); }
       // 講師按了新的一堂課。resetId 是數字（含 0）才清；undefined＝入座沒連上，不動
       if (j && typeof st.resetId === "number" && Number(j.resetId) > st.resetId) { again = false; // 只清闖關進度；學員自己寫的內容（sheet）、桌號、帳號都留著，重開後用同一桌重新取號
-        st = { sheet: st.sheet || {}, team: st.team, acct: st.acct, done: {}, pass: 0, caught: 0, player: 0 };
+        st = { sheet: st.sheet || {}, sheetAt: st.sheetAt || {}, team: st.team, acct: st.acct, done: {}, pass: 0, caught: 0, player: 0, resetId: Number(j.resetId) };   // resetId 記新的：別的舊分頁合併時會輸給它，清掉的進度不會復活
         API.store.set(KEY, st); API.store.set("lu-q-" + S, []); location.reload(); return; }   // 直接寫、不跟舊的合併，否則清掉的進度會被合回來
       await API.flush(); notifyFlush();
     } catch (e) { /* 單輪失敗不影響下一輪 */ }
@@ -162,15 +182,15 @@
       if (again) { setTimeout(poll, nextPollMs(st, lastRelay) * (0.85 + Math.random() * 0.3)); }   // 錯開 ±15%
     }
   }
-  // 別的分頁改了同一份進度：吸收進來；進度（done）變了就重新整理（資料都已存，不會掉）；只是填字就不動畫面
+  // 別的分頁改了同一份進度：吸收進來並更新 HUD；進度（done）變了就出一條提示，由學員決定要不要重新整理；只是填字就不動畫面
   function onStorage(e) {
     if (!e || e.key !== KEY || !e.newValue) return;
     let other; try { other = JSON.parse(e.newValue); } catch (x) { return; }
     const keys = o => Object.keys((o && o.done) || {}).sort().join(",");
     const changed = keys(other) !== keys(st);
     st = mergeState(other, st);
-    if (changed) { location.reload(); return; }
-    renderHud();
+    renderHud(); refreshPending();   // 等級、經驗條、頭像、待送出筆數：原地更新，不動焦點
+    if (changed) showSync();
   }
   if (window.addEventListener) window.addEventListener("storage", onStorage);
   window.APP = { ctx, poll, nextPollMs, mergeState, onStorage, state: () => st };   // 測試與除錯用

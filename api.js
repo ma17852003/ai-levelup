@@ -52,15 +52,32 @@
     store.set(qKey(), q);
   }
   const MAX_TRIES = 8;
+  // 跨分頁鎖：兩個分頁共用同一份佇列時，只准一個在送，不然隊首那筆會被兩邊各送一次。拿不到鎖＝另一頁正在送，這一輪跳過
+  const LOCK_MS = 20000, ME = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const lsKey = () => "lu-flushlock-" + cfg().session;
+  let usingLs = false;
+  const lsRead = () => { try { return JSON.parse(localStorage.getItem(lsKey()) || "null"); } catch (e) { return null; } };
+  const lsTouch = () => { try { localStorage.setItem(lsKey(), JSON.stringify({ owner: ME, exp: Date.now() + LOCK_MS })); } catch (e) {} };
+  async function withFlushLock(fn) {
+    const nav = typeof navigator !== "undefined" ? navigator : null;
+    if (nav && nav.locks && nav.locks.request) return nav.locks.request("lu-flush-" + cfg().session, { ifAvailable: true }, lock => (lock ? fn() : undefined));
+    const l = lsRead();
+    if (l && l.owner !== ME && l.exp > Date.now()) return;   // 別頁持有且沒過期
+    try { localStorage.setItem(lsKey(), JSON.stringify({ owner: ME, exp: Date.now() + LOCK_MS })); } catch (e) { return fn(); }   // 連鎖都寫不進去＝這台存不了檔，沒有跨分頁問題，照送
+    const back = lsRead(); if (back && back.owner !== ME) return;   // 同時搶，被別頁搶走（讀不回來＝這台存不住，照送）
+    usingLs = true;
+    try { return await fn(); } finally { usingLs = false; const c = lsRead(); if (c && c.owner === ME) { try { localStorage.removeItem(lsKey()); } catch (e) {} } }
+  }
   let flushing = null;
   function flush() {
     if (flushing) return flushing;   // 進行中：它會一路送到佇列清空，後來排進來的也一起
-    const run = async () => {
+    const body = async () => {
       {
         let budget = queue().length + 50;   // 一次 flush 最多送這麼多次，絕不空轉
         while (budget-- > 0) {
           const item = queue()[0];
           if (!item) break;
+          if (usingLs) lsTouch();   // 送很多筆時續約，鎖不會中途過期
           const r = await send("/lu-ev", { session: cfg().session, cid: deviceId(), kind: item.kind, team: item.team, key: item.key, value: item.value });
           if (r.j) { store.set(qKey(), queue().filter(x => x.qid !== item.qid)); continue; }
           if (!r.responded) break;   // 斷線：留著，下次再送
@@ -71,6 +88,7 @@
         }
       }
     };
+    const run = () => withFlushLock(body);
     // 用 .finally 重設：它一定在 flushing 指派之後才跑（佇列是空的時候 run 會同步跑完，不能在裡面重設）
     flushing = run().finally(() => { flushing = null; });
     return flushing;
