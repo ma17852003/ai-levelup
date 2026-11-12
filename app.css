@@ -1,0 +1,11 @@
+/* 學員頁補充樣式（theme.css 不動；這裡只放頭像尺寸與小細節） */
+.hud > div:last-child { display: flex; align-items: center; gap: var(--sp-2); }
+.avatar { display: block; height: auto; max-width: 100%; border-radius: var(--r-card); }
+.avatar-fb { display: inline-block; }
+.avatar-fb svg { width: 100%; height: auto; }
+.pix { display: inline-flex; }
+.pix-big { display: flex; justify-content: center; margin: var(--sp-4) 0; }
+.pixel-wrap { display: flex; margin-bottom: var(--sp-2); }
+img, svg { max-width: 100%; }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; box-sizing: border-box; }
+.levelup { background: color-mix(in srgb, var(--bg-deep) 98%, transparent); backdrop-filter: blur(6px); }

@@ -1,0 +1,86 @@
+/* 《AI 團隊自己組團》共用底：色碼抄 PPT build_deck.js 第 18–21 行，不准自己調 */
+:root {
+  --bg: #12162A; --bg-deep: #0D1022; --panel: #1C2242; --panel-2: #252C55; --line: #2E3660;
+  --fg: #EEF0F7; --fg-dim: #A6ACC8;
+  --muted: #7D84A8;                 /* 只准放在 --bg 上當字；卡片上只當邊框 */
+  --line-strong: #7D84A8;           /* 可點元件的邊框，對 --panel 4.2:1，過 3:1 */
+
+  --gold: #F4B740; --on-gold: #2A1F05; --gold-soft: rgba(244, 183, 64, .14);   /* 金＝會給經驗值 */
+  --cool: #7FB2E5; --on-cool: #0B2238; --cool-soft: rgba(127, 178, 229, .12);  /* 冷藍＝講師示範 */
+  --bad: #FF7A6B; --ok: #5BC98A;    /* 一定搭圖示＋文字 */
+
+  --paper: #F5EFE1; --ink: #1B1A17; --ink-dim: #5E584C; --gold-ink: #7A5C0E;   /* 要複製的紙卡 */
+
+  --focus: #EEF0F7;                 /* 焦點框用主文字色，金色留給「升級」 */
+  --shape-outline: #12162A;         /* 桌別形狀描邊，common.js 改吃這個 */
+
+  --font-sans: "Microsoft JhengHei", "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, ui-monospace, monospace;
+
+  --fs-xs: 15px; --fs-sm: 16px; --fs-md: 18px; --fs-lg: 22px; --fs-xl: 28px; --fs-2xl: 36px; --fs-hud: 24px;
+  --lh-body: 1.75;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+  --tap-min: 48px; --btn-h: 56px; --app-max: 760px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-tap: 120ms; --t-ui: 220ms; --t-reveal: 500ms;   /* 全部只播一次，沒有 infinite */
+  color-scheme: dark;
+}
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+
+/* 方向 C：遊戲狀態列 GAME HUD，疊在共用 :root 之上 */
+:root {
+  --seg-on: var(--gold);        /* 經驗條每一格（填滿） */
+  --seg-off: #2E3660;           /* 經驗條每一格（還沒填）：意思靠旁邊的百分比文字 */
+  --seg-gap: 3px;
+  --crest-today: var(--gold);   /* Lv.1～4 徽章外框 */
+  --crest-demo: var(--cool);    /* Lv.5～7 徽章外框 */
+  --crest-bg: #1C2242;
+
+  --r-card: 10px; --r-pill: 999px;
+  --sh-rest: none;
+
+  --font-latin-display: "Space Grotesk", "Microsoft JhengHei", sans-serif;  /* 只給 LEVEL UP、EXP 這些英文 */
+
+  --t-bar-fill: 700ms;   /* 經驗條一格一格填（steps） */
+  --t-crest-flip: 450ms; /* 徽章翻面 */
+  --t-levelup: 1500ms;
+}
+
+/* ===== 元件 ===== */
+body { margin: 0; background: var(--bg); color: var(--fg); font: var(--fs-md)/var(--lh-body) var(--font-sans); }
+.app { max-width: var(--app-max); margin: 0 auto; padding: var(--sp-4); }
+.hud { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: var(--sp-3) 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: auto 1fr auto; gap: var(--sp-3); align-items: center; }
+.crest { font: 800 var(--fs-hud) var(--font-mono); color: var(--crest-today); border: 2px solid var(--crest-today); border-radius: var(--r-card); padding: 2px 10px; background: var(--crest-bg); }
+.exp { display: grid; grid-template-columns: repeat(20, 1fr); gap: var(--seg-gap); }
+.exp i { height: 14px; background: var(--seg-off); border-radius: 2px; }
+.exp i.on { background: var(--seg-on); }
+.exp-label { font: 700 var(--fs-xs) var(--font-mono); color: var(--fg-dim); }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--sp-5); margin: var(--sp-4) 0; }
+.stage.now { border-color: var(--fg); }
+.stage.demo { border: 1.5px dotted var(--cool); }
+.stage h2 { font-size: var(--fs-xl); margin: 0 0 var(--sp-2); }
+.step-no { font: 700 var(--fs-xs) var(--font-mono); color: var(--fg-dim); }
+.paper { background: var(--paper); color: var(--ink); border-radius: 6px; padding: var(--sp-4); white-space: pre-wrap; font-size: var(--fs-sm); max-height: 260px; overflow: auto; }
+.btn { min-height: var(--btn-h); padding: 0 var(--sp-5); border-radius: var(--r-pill); border: 1.5px solid var(--line-strong); background: var(--panel-2); color: var(--fg); font-size: var(--fs-md); cursor: pointer; }
+.btn[aria-pressed="true"] { border-color: var(--fg); background: var(--panel); }
+.btn.copy { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.btn.submit { background: var(--gold); color: var(--on-gold); border-color: var(--gold); font-weight: 700; }
+.btn.demo { border-color: var(--cool); color: var(--cool); }
+.ok-msg { color: var(--ok); } .bad-msg { color: var(--bad); }
+.buckets { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--sp-3); }
+.bucket { min-height: 120px; border: 1.5px dashed var(--line-strong); border-radius: var(--r-card); padding: var(--sp-2); }
+.chip { display: inline-flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--sp-3); margin: 4px; border-radius: var(--r-pill); background: var(--panel-2); border: 1px solid var(--line-strong); color: var(--fg); cursor: grab; font-size: var(--fs-md); }
+.chip[aria-pressed="true"] { border-color: var(--fg); }
+.levelup { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-deep) 94%, transparent); display: grid; place-items: center; z-index: 20; text-align: center; }
+.levelup h1 { font: 700 clamp(36px, 10vw, 64px) var(--font-latin-display); letter-spacing: .12em; color: var(--gold); margin: 0; }
+.levelup .flip { display: inline-block; animation: flip var(--t-crest-flip) var(--ease-out) 1; }
+@keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0); } }
+textarea, input[type=text], select { width: 100%; box-sizing: border-box; background: var(--bg-deep); color: var(--fg); border: 1.5px solid var(--line-strong); border-radius: 8px; padding: var(--sp-3); font: inherit; }
+label { display: block; margin: var(--sp-3) 0 var(--sp-2); }
+.check { display: flex; gap: var(--sp-2); align-items: flex-start; min-height: var(--tap-min); }
+.block { margin: var(--sp-5) 0; }
+@media (max-width: 700px) { .stage h2 { font-size: var(--fs-lg); } }

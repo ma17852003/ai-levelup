@@ -1,0 +1,134 @@
+/* 投影幕：1024×768 為基準（1rem＝16px），其他尺寸等比放大，整頁不出現捲軸 */
+html { font-size: min(calc(100vw / 64), calc(100vh / 48)); }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); }
+body { font: 1.125rem/1.35 var(--font-sans); }
+.scr { width: 100vw; height: 100vh; box-sizing: border-box; padding: .75rem 1rem; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: .75rem; overflow: hidden; }
+[hidden] { display: none !important; }
+
+/* 上排 */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 3.25rem; border-bottom: 1px solid var(--line); padding-bottom: .5rem; }
+.t-stage { font-size: 1.75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-right { text-align: right; white-space: nowrap; }
+.t-players { font: 800 1.5rem var(--font-mono); color: var(--gold); }
+.t-conn { font-size: .9375rem; color: var(--fg-dim); }
+
+/* 主區：左大塊＋右成就牆 */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1rem; min-height: 0; }
+.left { min-height: 0; display: flex; flex-direction: column; }
+.panel { flex: 1; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card); padding: 1rem; box-sizing: border-box; }
+.panel h3, .vote-box h3 { margin: 0 0 .5rem; font-size: 1.125rem; line-height: 1.3; }
+
+/* 等級分布 */
+.levels { display: flex; flex-direction: column; gap: .75rem; }
+.lv-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .5rem; }
+.lv-col { min-height: 0; display: flex; flex-direction: column; align-items: center; text-align: center; border-radius: var(--r-card); padding: .5rem .25rem; }
+.lv-col.demo { background: repeating-linear-gradient(135deg, var(--cool-soft) 0 .5rem, transparent .5rem 1rem); border: 1.5px dotted var(--cool); }
+.lv-col.today { border: 1px solid var(--line); }
+.av { width: 4.5rem; height: 4.5rem; object-fit: contain; flex: none; }
+.lv-no { font: 800 1.25rem var(--font-mono); margin-top: .25rem; }
+.today .lv-no { color: var(--gold); } .demo .lv-no { color: var(--cool); }
+.lv-name { font-size: 1rem; color: var(--fg-dim); }
+.lv-track { flex: 1; min-height: 0; width: 70%; margin: .5rem 0; position: relative; }
+.demo .lv-track { visibility: hidden; }
+.lv-fill { position: absolute; left: 0; right: 0; bottom: 0; background: var(--gold); border-radius: 3px 3px 0 0; transition: height 600ms var(--ease-out); }
+.lv-n { font: 800 1.5rem var(--font-mono); }
+.demo .lv-n { font: 700 1.25rem var(--font-sans); color: var(--cool); }
+.lv-total { display: flex; gap: 3px; height: 2rem; }
+.seg { display: flex; align-items: center; justify-content: center; background: var(--gold); color: var(--on-gold); font: 700 .875rem var(--font-mono); min-width: 0; overflow: hidden; border-radius: 2px; transition: flex-grow 600ms var(--ease-out); }
+.seg.zero { background: var(--seg-off); color: var(--fg-dim); flex-basis: 3rem; }
+
+/* 長條（投票、成就牆共用）：節點固定，只改寬度與數字 */
+.bars { display: flex; flex-direction: column; gap: .25rem; flex: 1; min-height: 0; }
+.bar-row { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) 3rem; gap: .5rem; align-items: center; flex: 1; min-height: 1.5rem; max-height: 2.5rem; }
+.bl { font-size: 1rem; line-height: 1.2; overflow: hidden; }
+.bb { height: 1rem; background: var(--seg-off); border-radius: 3px; overflow: hidden; display: block; }
+.bb i { display: block; height: 100%; width: 0; background: var(--fg-dim); transition: width 600ms var(--ease-out); }
+.bn { font: 800 1.125rem var(--font-mono); text-align: right; }
+
+/* 投票 */
+.votes { display: flex; flex-direction: column; gap: .75rem; }
+.vote-box { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.v-open .vote-box:first-child { flex: 7; } .v-open .vote-box:nth-child(2) { flex: 4; }
+.v-end { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: .5rem 1rem; }
+.v-end h3 { font-size: 1rem; }
+.v-end .vote-box:nth-child(1) { grid-column: 1; grid-row: 1; } .v-end .vote-box:nth-child(2) { grid-column: 1; grid-row: 2; }
+.v-end .cmp { grid-column: 2; grid-row: 1 / 3; }
+.v-end .bar-row { grid-template-columns: 8.5rem minmax(0, 1fr) 2.25rem; flex: none; height: 1.5rem; }
+.cmp-legend { display: flex; gap: 1rem; font-size: .9375rem; color: var(--fg-dim); }
+.cmp-legend .k0::before, .cmp-legend .k1::before { content: ""; display: inline-block; width: 1.25rem; height: .625rem; margin-right: .375rem; border-radius: 2px; }
+.cmp-legend .k0::before { background: var(--line-strong); } .cmp-legend .k1::before { background: var(--cool); }
+.cmp-sub { font-size: .9375rem; color: var(--fg-dim); margin: .25rem 0; }
+.cmp-row { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: .5rem; align-items: center; flex: 1; min-height: 0; }
+.cmp-tracks { display: flex; flex-direction: column; gap: 3px; }
+.cmp-r { display: grid; grid-template-columns: minmax(0, 1fr) 2rem; gap: .375rem; align-items: center; }
+.cmp-r .bb { height: .625rem; } .cmp-r .bn { font-size: .875rem; }
+.bb.k0 i { background: var(--line-strong); } .bb.k1 i { background: var(--cool); }
+
+/* 接力：固定照組別排 */
+.relay { display: flex; flex-direction: column; }
+.relay-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .25rem; }
+.relay-row { flex: 1; min-height: 0; max-height: 3.5rem; display: grid; grid-template-columns: 7rem minmax(0, 1fr); align-items: center; gap: .75rem; border-bottom: 1px solid var(--line); }
+.r-name { font: 800 1.25rem var(--font-sans); }
+.r-pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+.pill { text-align: center; padding: .25rem 0; border: 1.5px dashed var(--line-strong); border-radius: var(--r-pill); color: var(--fg-dim); font-size: 1rem; }
+.pill.done { border: 1.5px solid var(--ok); background: rgba(91, 201, 138, .14); color: var(--fg); font-weight: 700; }
+.relay-empty { color: var(--fg-dim); font-size: 1.25rem; padding: 1rem 0; }
+
+/* 成就牆 */
+.ach { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card); padding: 1rem; display: flex; flex-direction: column; min-height: 0; box-sizing: border-box; }
+.ach h3 { margin: 0; font-size: 1.375rem; } .ach-sub { color: var(--fg-dim); font-size: .9375rem; margin-bottom: .5rem; }
+.ach-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .5rem; }
+.ach .bar-row { grid-template-columns: 1fr 3rem; grid-template-rows: auto auto; gap: .125rem .5rem; max-height: none; align-content: center; }
+.ach .bl { font-size: 1.125rem; grid-column: 1; } .ach .bn { grid-column: 2; grid-row: 1; color: var(--gold); font-size: 1.375rem; }
+.ach .bb { grid-column: 1 / 3; grid-row: 2; height: .5rem; } .ach .bb i { background: var(--gold); }
+
+/* 底列 */
+.bottom { display: flex; align-items: center; gap: 2rem; border-top: 1px solid var(--line); padding-top: .5rem; min-height: 3rem; }
+.b-url { flex: 1; } .b-k { color: var(--fg-dim); font-size: 1rem; margin-right: .75rem; }
+.b-v { font: 800 1.75rem var(--font-mono); letter-spacing: .02em; }
+.reset { font: inherit; font-size: .8125rem; color: var(--fg-dim); background: transparent; border: 1px solid var(--line); border-radius: var(--r-pill); padding: .25rem .75rem; cursor: pointer; opacity: .6; }
+.reset:hover, .reset:focus-visible { opacity: 1; color: var(--fg); border-color: var(--line-strong); }
+
+/* 開場兩題：標籤放寬成一行，列高固定，11 列放得下 */
+.v-open .bar-row { grid-template-columns: 14rem minmax(0, 1fr) 3rem; flex: none; height: 1.75rem; max-height: none; }
+.v-open .bl { white-space: nowrap; }
+.v-open .vote-box { flex: none; }
+.v-open .bars { flex: none; }
+
+/* 提示（切關沒送出）：放在上排中間，不推擠版面 */
+.t-notice { flex: none; color: var(--on-gold); background: var(--gold); font-weight: 700; font-size: 1rem; padding: .25rem .75rem; border-radius: var(--r-pill); white-space: nowrap; }
+/* 接力組多：兩欄／三欄，列高縮小，20 組也放得下 */
+.relay-list.c2, .relay-list.c3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 2.6rem; gap: .125rem 1rem; align-content: start; }
+.relay-list.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 2.2rem; gap: .125rem .75rem; }
+.c2 .relay-row, .c3 .relay-row { max-height: none; grid-template-columns: 5.5rem minmax(0, 1fr); gap: .5rem; }
+.c2 .r-name { font-size: 1rem; } .c3 .r-name { font-size: .875rem; }
+.c2 .pill { font-size: .875rem; padding: .125rem 0; } .c3 .pill { font-size: .75rem; padding: .0625rem 0; border-width: 1px; }
+.c3 .relay-row { grid-template-columns: 4rem minmax(0, 1fr); } .c3 .r-pills { gap: .25rem; }
+
+/* 直式（高大於寬）：主畫面在上、成就牆在下，一起撐滿頂列與底列之間的高度；橫式完全不受影響 */
+@media (orientation: portrait) {
+  html { font-size: min(calc(100vw / 40), calc(100vh / 64)); }
+  .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 62fr) minmax(0, 38fr); }
+  .ach-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: .25rem 1rem; }
+  .ach .bar-row { flex: none; }
+  .bottom { flex-wrap: wrap; gap: .5rem 1.5rem; }
+  .b-v { font-size: 1.5rem; }
+  .v-end { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .v-end .vote-box:nth-child(1), .v-end .vote-box:nth-child(2), .v-end .cmp { grid-column: 1; grid-row: auto; }
+  .v-open .bar-row { grid-template-columns: 12.5rem minmax(0, 1fr) 2.5rem; }
+  /* 收尾關有三塊（兩題＋前後對照）：直式疊起來比較高，給主畫面多一點、成就牆少一點，列高收緊 */
+  .main:has(.v-end:not([hidden])) { grid-template-rows: minmax(0, 73fr) minmax(0, 27fr); }
+  .v-end { gap: .375rem; }
+  .v-end .vote-box h3 { margin-bottom: .125rem; }
+  .v-end .bars { gap: .125rem; }
+  .v-end .bar-row { height: 1.25rem; }
+  .v-end .cmp-row { flex: none; height: 1.4rem; }
+  .v-end .cmp-legend, .v-end .cmp-sub { margin: 0; line-height: 1.2; font-size: .8125rem; }
+  .main:has(.v-end:not([hidden])) .ach-sub { display: none; }
+  .main:has(.v-end:not([hidden])) .ach .bar-row { gap: 0 .5rem; }
+  .v-end .cmp-tracks { gap: 0; }
+  .v-end .cmp-r { height: .7rem; } .v-end .cmp-r .bb { height: .5rem; } .v-end .cmp-r .bn { font-size: .7rem; line-height: .7rem; }
+  .pill { white-space: nowrap; }
+  .c2 .relay-row, .c3 .relay-row { grid-template-columns: 4.5rem minmax(0, 1fr); gap: .25rem; }
+  .c2 .pill { font-size: .75rem; } .c2 .r-pills { gap: .25rem; } .c2 .r-name { font-size: .875rem; }
+}

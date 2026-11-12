@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的 AI 團隊設計單</title>
+<link rel="stylesheet" href="theme.css?v=202611121656"><link rel="stylesheet" href="app.css?v=202611121656">
+<style>
+  .sheet { max-width: 794px; margin: 0 auto; padding: var(--sp-4); }
+  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-4) 0; }
+  .head { display: flex; gap: var(--sp-4); align-items: center; border-bottom: 2px solid var(--line-strong); padding-bottom: var(--sp-3); }
+  .head h1 { margin: 0; font-size: var(--fs-xl); }
+  .cell { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; break-inside: avoid; }
+  .cell h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-md); }
+  .val { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .empty { color: var(--fg-dim); }
+  .rows { margin: 0; padding: 0; list-style: none; }
+  .rows li { margin: var(--sp-1) 0; }
+  .rows b { display: inline-block; min-width: 9.5em; }
+  @page { size: A4 portrait; margin: 12mm; }
+  @media print {
+    body { background: #fff; color: #000; font-size: 11pt; line-height: 1.5; }
+    .noprint { display: none !important; }
+    .sheet { max-width: none; padding: 0; }
+    .head { border-color: #000; }
+    .cell { background: #fff; border: 1px solid #555; color: #000; padding: 6px 10px; margin: 6px 0; }
+    .empty { color: #555; }
+    .avatar { border-radius: 0; }
+  }
+</style></head>
+<body><main class="sheet" id="sheet"></main>
+<script src="core.js?v=202611121656"></script><script src="pixel.js?v=202611121656"></script><script src="avatar.js?v=202611121656"></script>
+<script>
+(function () {
+  const root = document.getElementById("sheet");
+  const s = (new URLSearchParams(location.search).get("s") || "1").replace(/\D/g, "").slice(0, 4) || "1";
+  const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  let st = null, blocked = false;
+  try { st = JSON.parse(localStorage.getItem("lu-st-" + s) || "null"); } catch (e) { st = null; blocked = true; }
+  const bar = h("div", "bar noprint"), btn = h("button", "btn submit", "列印／存成 PDF");
+  btn.addEventListener("click", () => window.print()); bar.append(btn, h("span", "step-no", "選「另存成 PDF」就能帶回家；A4 直式"));
+  root.append(bar);
+  if (blocked) { root.append(h("p", "bad-msg", "這台電腦擋住了瀏覽器存檔，請回闖關頁按『產生我的設計單』前先截圖")); return; }
+  if (!st || !st.done) {
+    root.append(h("p", "", "這台電腦上找不到你的闖關紀錄。請用上課時同一台電腦、同一個瀏覽器開這一頁。"));
+    return;
+  }
+  const sheet = st.sheet || {}, lv = LU.level(st), L = LU.LEVELS[lv - 1];
+  const head = h("header", "head"), t = h("div");
+  t.append(h("h1", "", "我的 AI 團隊設計單"), h("p", "", `Lv.${lv} ${L.name}${st.player ? `｜${st.player} 號` : ""}${st.team ? `｜第 ${st.team} 桌` : ""}`));
+  head.append(AVATAR.el(lv, 96), t); root.append(head);
+  function cell(title, value) {
+    const c = h("section", "cell"); c.append(h("h2", "", title));
+    const txt = typeof value === "string" ? value.trim() : "";
+    c.append(txt ? h("div", "val", txt) : h("div", "empty", "（這格還沒寫）"));
+    root.append(c);
+  }
+  function rows(title, pairs) {
+    const c = h("section", "cell"), ul = h("ul", "rows"); c.append(h("h2", "", title));
+    pairs.forEach(([k, v]) => { const li = h("li"), val = typeof v === "string" && v.trim() ? v.trim() : ""; li.append(h("b", "", k), h("span", val ? "val" : "empty", val || "（還沒寫）")); ul.append(li); });
+    c.append(ul); root.append(c);
+  }
+  const card = sheet.card || {}, plan = sheet.plan || {};
+  cell("第 1 格　我明天最想丟給 AI 助理的第一件事", sheet.first);
+  cell("第 2、3 格　需求單（我的專員要做什麼、怎麼算做得好）", sheet.brief);
+  cell("第 4 格　參考資料目錄（檔名｜管什麼｜給誰｜關鍵字）", sheet.toc);
+  cell("第 5 格　考我的 Gem 的陷阱題", sheet.traps);
+  cell("考試成績", `${Number(st.pass) || 0} 題通過（共 5 題，過 4 題以上算 Lv.4 專員）`);
+  rows("我的小隊名片", [["專員（Gem 名稱）", card.gem], ["審查員", card.reviewer], ["明天從哪裡打開", card.where]]);
+  rows("三週計畫", [["第 1 週　試用的同事", plan.w1], ["第 2 週　再加哪一份", plan.w2], ["第 3 週　真的工作", plan.w3]]);
+})();
+</script></body></html>
