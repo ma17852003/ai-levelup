@@ -124,10 +124,10 @@
     const btn = h("button", { class: "btn", onclick: async () => {
       let ok = false;
       try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
-      if (ok) { BLOCKS.flash(btn, "✓ 已複製，到右邊 Gemini 貼上", 3000); msg.textContent = ""; box.replaceChildren(); }
+      if (ok) { BLOCKS.flash(btn, "✓ 已複製，到 Gemini 貼上", 3000); msg.textContent = ""; box.replaceChildren(); }
       else { msg.textContent = "複製不了，請手動選取這段"; box.replaceChildren(text); }
     } }, "卡住了？複製問題去問 Gemini");
-    return h("div", {}, btn, live);
+    return h("div", {}, h("div", { class: "actions" }, btn, BLOCKS.geminiLink()), live);
   }
   const stageLabel = id => ({ s0: "報到", open: "開場", end: "收尾" })[id] || (/^s[1-6]$/.test(id) ? `第 ${id.slice(1)} 關` : "");
   function walk(n, c, f) { if (n.className && String(n.className).split(" ").includes(c)) f(n); Array.from(n.children || []).forEach(k => walk(k, c, f)); }

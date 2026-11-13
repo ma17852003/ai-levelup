@@ -15,7 +15,7 @@ window.STAGES = [
       reveal: "直接丟，AI 只能猜：日期、對象、名額都可能自己編。先被問清楚，它才知道你要什麼。" },
     { type: "copy", id: "s1.copy", label: "拷問提示詞：整段複製。你在第 1 格寫了的話，會自動帶進「（　）」裡", from: "grill", fill: "first" },
     { type: "text", id: "s1.brief", field: "brief", label: "把 AI 整理的需求單重點貼回來（設計單第 2、3 格）", rows: 6, min: 30 },
-    { type: "copy", id: "s1.instr", label: "升級時刻①：在同一個對話打這句，把結果複製起來，下一關建 Gem 用", from: "toInstr" } ] },
+    { type: "copy", id: "s1.instr", label: "升級時刻①：在同一個對話打這句，把結果複製起來，下一關建 Gem 用", from: "toInstr", noOpen: true } ] },
   { id: "s2", title: "做一個審查員", time: "14:40", ppt: "第 15～19 頁", blocks: [
     { type: "sort", id: "s2.sort", q: "這些是「員工」（Gem）還是「做法」（Skill＝SOP，標準作業流程：寫好的一套做事步驟）？", buckets: [
       { key: "gem", label: "Gem＝一位員工", shape: "circle" }, { key: "skill", label: "Skill＝一本 SOP", shape: "square" } ],

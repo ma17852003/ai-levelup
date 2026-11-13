@@ -4,6 +4,9 @@
 (function () {
   const h = (tag, attrs, ...kids) => { const e = document.createElement(tag); Object.entries(attrs || {}).forEach(([k, v]) => { if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); }); kids.flat().forEach(k => e.append(k && k.nodeType ? k : String(k == null ? "" : k))); return e; };
   const opts = (...kids) => h("div", { class: "opts" }, ...kids);      // 一組選項：桌機自動換行、手機一個一行
+  // 複製完直接開 Gemini（新分頁；不重用分頁，免得蓋掉正在用的對話）
+  const GEMINI = "https://gemini.google.com/app";
+  const geminiLink = () => h("a", { class: "btn demo", href: GEMINI, target: "_blank", rel: "noopener" }, "打開 Gemini ↗");
   const actions = (...kids) => h("div", { class: "actions" }, ...kids);   // 送出鈕＋提示字一排，提示字太長自己換行
   // 按鈕回饋：flash＝暫時換字（預設 3 秒）；press＝送出類按鈕（工作先做完，按鈕停用 600ms 並顯示「送出中…」；work 回傳 false＝沒送成，不閃）
   function flash(btn, text, ms) { if (btn.__old == null) btn.__old = btn.textContent; btn.textContent = text; clearTimeout(btn.__t); btn.__t = setTimeout(() => { btn.textContent = btn.__old; btn.__old = null; }, ms || 3000); }
@@ -61,7 +64,7 @@
           if (ok) { msg.textContent = "✓ 已複製，到 Gemini 貼上"; flash(btn, "✓ 已複製", 3000); manual.replaceChildren(); if (b.id) ctx.done(b.id); return; }
           msg.textContent = "複製沒成功，請手動選取上面文字複製";   // 失敗不算完成
           if (b.id) manual.replaceChildren(h("button", { class: "btn small manual", onclick: () => { ctx.done(b.id); msg.textContent = "✓ 已記錄手動複製"; manual.replaceChildren(); } }, "我已手動複製"));
-        } }, "複製"), msg, manual));
+        } }, "複製"), b.noOpen ? "" : geminiLink(), msg, manual));
     },
     text(b, ctx) {
       const ta = h("textarea", { rows: b.rows || 3, "aria-label": b.label }); ta.value = (ctx.st().sheet || {})[b.field] || "";
@@ -239,5 +242,5 @@
         c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: e => { ctx.done(b.id); flash(e.currentTarget, "✓ 已打開", 3000); } }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
     }
   };
-  window.BLOCKS = { h, R, textOf, flash, press, tableName };
+  window.BLOCKS = { h, R, textOf, flash, press, tableName, geminiLink };
 })();

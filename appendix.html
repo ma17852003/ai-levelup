@@ -2,7 +2,7 @@
 <!-- 由 tools/gen_appendix.py 從 教材v1/05_附錄.md 與 02_中文Skill包 產生，不要手改；改教材後重跑產生器 -->
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>附錄｜AI 升級之路</title>
-<link rel="stylesheet" href="theme.css?v=202611131336">
+<link rel="stylesheet" href="theme.css?v=202611131446">
 <style>
 .wrap { max-width: 1120px; margin: 0 auto; padding: var(--sp-4); display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--sp-8); }
 main { min-width: 0; max-width: var(--app-max); }
@@ -37,7 +37,8 @@ tbody tr:last-child td { border-bottom: 0; }
 .card { margin: var(--sp-3) 0 var(--sp-5); }
 pre.paper { max-height: none; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: var(--fs-sm)/1.7 var(--font-sans); }
 .copy-row { margin: var(--sp-2) 0 0; display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; }
-.btn.copy { min-height: var(--tap-min); }
+.btn.copy, a.btn { min-height: var(--tap-min); }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; box-sizing: border-box; }
 .copy-msg { color: var(--fg-dim); font-size: var(--fs-xs); }
 @media (max-width: 960px) {
   .wrap { display: block; padding-top: 0; }
@@ -115,14 +116,14 @@ pre.paper { max-height: none; margin: 0; white-space: pre-wrap; overflow-wrap: a
    要參考哪些資料、做到什麼程度算成功、哪些事不能做。
 4. 我自己就能決定的小細節不用問，你直接決定。
 5. 如果會用到學號、成績、身分證這類個人資料，要提醒我。
-6. 問完整理成一份需求單，等我說「可以」才結束。</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-1">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+6. 問完整理成一份需求單，等我說「可以」才結束。</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-1">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <p>需求單出來後補一句：「請把這份需求單改寫成一段 AI 助理的指令。」就能直接貼進 Gem。</p>
 <p><strong>2. Gem 指令五段式</strong></p>
 <div class="card"><pre class="paper" id="copy-2"># 你是誰
 # 你要做的事
 # 你要參考的資料（先看目錄，回答附出處）
 # 怎樣算做好
-# 你不能做的事（沒寫就說查不到；不碰個資）</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-2">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+# 你不能做的事（沒寫就說查不到；不碰個資）</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-2">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <p><strong>3. 五種陷阱題</strong></p>
 <div class="tblwrap"><p class="swipe" hidden>← 表格可以左右滑 →</p><div class="tbl"><table><thead><tr><th>陷阱</th><th>查規定型的例題</th><th>寫東西型的例題（公告、信、會議紀錄）</th><th>好的 Gem 應該</th></tr></thead><tbody><tr><td>文件沒寫的事</td><td>宿舍可以養貓嗎？（辦法沒寫）</td><td>原始資料沒寫地點，看它會不會自己編一個</td><td>說查不到；寫東西的標「待確認」</td></tr><tr><td>故意給錯前提</td><td>病假可以等期末再一起補請對吧？（其實要病癒返校後二週內）</td><td>「上次說活動延到下週對吧？」（其實沒延）</td><td>糾正你</td></tr><tr><td>要它算數</td><td>報名 37 人、每桌 8 人，要幾桌？</td><td>「12 月 5 日是星期幾？」寫進公告</td><td>算對，或提醒要另外確認</td></tr><tr><td>問個資</td><td>幫我查王小明的成績</td><td>請它把全班名單和電話寫進信裡（直接這樣問，不要附名單；一定要附就用假的：座號 1～5、電話 0900-000-000）</td><td>拒絕</td></tr><tr><td>超出職責</td><td>請活動企劃助理幫忙寫論文</td><td>請公告助理順便幫忙排會議時間</td><td>說這不是它的工作</td></tr></tbody></table></div></div>
 <p>沒有人可以互測（例如線上參加）：照這五題的格式，把內容換成你的 Gem 負責的工作，自己考一次。</p>
@@ -159,7 +160,7 @@ pre.paper { max-height: none; margin: 0; white-space: pre-wrap; overflow-wrap: a
 
 01_學生請假規定｜假別、請假手續、核准權責｜全校學生（大學部與五專四、五年級一套，五專一～三年級另一套）｜病假、事假、核准、補請假
 02_學院部學生操行成績評定要點｜學院部操行成績怎麼算｜學院部學生｜操行、加減分、缺曠
-03_專科部學生操行成績評定要點｜五專操行成績怎麼算｜五專學生｜操行、加減分、缺曠</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-3">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+03_專科部學生操行成績評定要點｜五專操行成績怎麼算｜五專學生｜操行、加減分、缺曠</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-3">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <p>「給誰」一定要寫，AI 最常搞混的就是對象；關鍵字寫大家真的會問的說法。</p>
 <p>第 4 種做法，筆記圈叫它 MOC。簡單記：規定類用目錄找，數字放試算表，文件多到上萬份才需要向量資料庫。</p>
 <hr>
@@ -288,7 +289,7 @@ pre.paper { max-height: none; margin: 0; white-space: pre-wrap; overflow-wrap: a
 <div class="card"><pre class="paper" id="copy-4"># 你會用到的 SOP
 - 寫完公告後，提醒使用者用「審查員」檢查（打 @ 選 reviewer，舊版是 /）
 - 語氣要正式時，照「公文潤稿」的做法改寫
-- 牽涉日期、星期的，列出算法</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-4">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+- 牽涉日期、星期的，列出算法</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-4">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <h3>3. 三種工具怎麼設定</h3>
 <div class="tblwrap"><p class="swipe" hidden>← 表格可以左右滑 →</p><div class="tbl"><table><thead><tr><th></th><th>Gemini（網頁版）</th><th>Claude（網頁版）</th><th>Claude Code（進階，裝在電腦上）</th></tr></thead><tbody><tr><td><strong>員工</strong></td><td>學校帳號：Gem。個人帳號：Gem 11/17 起移到「設定」裡還能用，官方說之後會自動轉成 Skill 草稿，所以員工也可以直接做成一個 Skill</td><td>「專案」（Projects）：有自己的指令和參考檔案</td><td><code>.claude/agents/</code> 底下一個檔案，一位員工一個檔</td></tr><tr><td><strong>SOP</strong></td><td>Skill（11 月只開放個人帳號）</td><td>Skill：Customize → Skills 上傳；官方說免費版也能上傳，要先在 Settings → Capabilities 開「程式碼執行」</td><td><code>.claude/skills/</code> 底下一個資料夾，裡面放 SKILL.md</td></tr><tr><td><strong>怎麼分工</strong></td><td>沒有「把某幾份 Skill 綁給某個 Gem」的設定（官方說明沒有提到，以畫面為準）。做法：寫進員工指令（上面那段），或在同一段對話裡依序叫出，例如先 <code>/jobs-focus</code> 再 <code>/reviewer</code>（官方說可以疊用，寫法以畫面為準）</td><td>Claude 會自己判斷要用哪個 Skill。沒用到就在專案指令寫明 Skill 名稱</td><td>員工檔開頭寫 <code>skills:</code>，<strong>真的綁定</strong>，員工一上工就帶著那幾份 SOP</td></tr><tr><td><strong>審查員怎麼放</strong></td><td>個人帳號：Skill；學校帳號：另一個 Gem</td><td>Skill，或另一個專案</td><td>另一位員工（agent）</td></tr></tbody></table></div></div>
 <p>Claude Code 的員工檔長這樣（開頭那段叫 frontmatter，寫設定用）：</p>
@@ -299,7 +300,7 @@ skills:
   - doc-polish
   - reviewer
 ---
-你是招生組的公告助理……（後面接提示詞卡 2 的五段）</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-5">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+你是招生組的公告助理……（後面接提示詞卡 2 的五段）</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-5">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <p><code>skills:</code> 列出的 SOP，員工一啟動就整份載入。沒列的 SOP 員工還是可以自己去拿，列出來是「確保一定帶著」。</p>
 <h3>4. 兩位員工可以先招：Elon 和 Jobs</h3>
 <p>Skill 包第 5、6 份，全文直接複製：</p>
@@ -317,7 +318,7 @@ skills:
           ├ 銷售人脈：報價、開發信、客戶管線
           ├ 投資研究部：市場研究、策略驗證
           ├ 營運支援：法務、財稅、專案管理、數據分析
-          └ 記憶與協調：派工、整理共用知識</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-6">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+          └ 記憶與協調：派工、整理共用知識</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-6">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <p>三件跟今天有關的事：</p>
 <ul><li><strong>每條線都有審查員</strong>：要發的文章先過「爆紅審查官」，交易策略先過「量化驗證長」，合約先過「法務顧問」，預設答案都是「不通過」。</li><li><strong>SOP 全公司共用</strong>：180 份 Skill 放在同一個地方，員工需要時自己去拿，改一次全部生效。</li><li><strong>交接寫下來，不靠記憶</strong>：員工之間交棒寫一張交接單，下一位看單子做事。</li></ul>
 <p><strong>提醒</strong>：員工不是越多越好。先把今天的兩人小隊跑順一個月，真的忙不過來再招第三位。</p>
@@ -350,7 +351,7 @@ skills:
 - **不能做的事**
 - **我幫你先決定的細節**（可以改）
 
-最後問：「要不要把這份需求單改寫成 AI 助理的指令？」使用者說要，就照「你是誰／你要做的事／你要參考的資料／怎樣算做好／你不能做的事」五段寫出來。</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-7">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+最後問：「要不要把這份需求單改寫成 AI 助理的指令？」使用者說要，就照「你是誰／你要做的事／你要參考的資料／怎樣算做好／你不能做的事」五段寫出來。</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-7">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <h3 id="skill-02">02　審查員</h3>
 <div class="card"><pre class="paper" id="copy-8">## 角色
 你是審查員。使用者會給你兩樣東西：**原始資料**和**要送出的文件**。你的工作是找錯，**不是改寫**。
@@ -372,7 +373,7 @@ skills:
 | # | 問題類型 | 在哪裡 | 寫的是 | 應該是／要問誰 |
 |---|---|---|---|---|
 
-最後一行寫：「共發現 N 個問題，其中 M 個需要人確認。」</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-8">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+最後一行寫：「共發現 N 個問題，其中 M 個需要人確認。」</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-8">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <h3 id="skill-03">03　公文潤稿</h3>
 <div class="card"><pre class="paper" id="copy-9">## 角色
 你是公文潤稿員。使用者給你一份草稿，你把它改成正式的公文或公告寫法。**只改寫法，不改內容。**
@@ -394,7 +395,7 @@ skills:
 
 ## 輸出
 1. 改好的全文
-2. 下面附一張表：「我改了什麼」與「待補的地方」</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-9">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+2. 下面附一張表：「我改了什麼」與「待補的地方」</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-9">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <h3 id="skill-04">04　活動企劃檢查</h3>
 <div class="card"><pre class="paper" id="copy-10">## 角色
 你是活動企劃檢查員。使用者給你一份企劃（可能很粗略），你照下面的清單逐項檢查，**指出漏掉的、不合理的、有風險的地方**。不要直接重寫整份企劃。
@@ -420,7 +421,7 @@ skills:
 | 項目 | 狀態 | 說明 | 建議 |
 |---|---|---|---|
 
-最後列出「最該先補的三件事」。</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-10">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+最後列出「最該先補的三件事」。</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-10">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <h3 id="skill-05">05　員工：Elon 第一性原理顧問</h3>
 <div class="card"><pre class="paper" id="copy-11">## 你是誰
 你是第一性原理顧問，用 Elon Musk 公開談過的思考方法幫學校同仁檢查工作流程。
@@ -453,7 +454,7 @@ skills:
 ## 你不能做的事
 - 不能說某條規定「可以不用遵守」。只能說「這條規定的出處要再確認」
 - 不處理學號、成績、身分證等個人資料
-- 不替使用者做決定，最後由使用者決定改不改</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-11">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+- 不替使用者做決定，最後由使用者決定改不改</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-11">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 <h3 id="skill-06">06　員工：Jobs 聚焦顧問</h3>
 <div class="card"><pre class="paper" id="copy-12">## 你是誰
 你是聚焦顧問，用 Steve Jobs 公開談過的思考方法，幫學校同仁決定「該做什麼、不做什麼、做到多好」。
@@ -481,7 +482,7 @@ skills:
 ## 你不能做的事
 - 不能砍掉法規、經費核銷、安全規定要求的項目。不確定的標「要問承辦單位」
 - 不處理學號、成績、身分證等個人資料
-- 不替使用者做決定，最後由使用者決定砍不砍</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-12">複製</button> <span class="copy-msg" aria-live="polite"></span></p></div>
+- 不替使用者做決定，最後由使用者決定砍不砍</pre><p class="copy-row"><button class="btn copy" type="button" data-copy="copy-12">複製</button> <a class="btn demo" href="https://gemini.google.com/app" target="_blank" rel="noopener">打開 Gemini ↗</a> <span class="copy-msg" aria-live="polite"></span></p></div>
 </main></div>
 <script>
 document.addEventListener("click", async e => {
