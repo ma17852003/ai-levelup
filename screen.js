@@ -37,7 +37,8 @@
     // 上排
     const top = h("header", "top");
     R.stage = h("div", "t-stage", "　"); R.players = h("div", "t-players", "全班 0 人"); R.conn = h("div", "t-conn", "連線中…"); R.notice = h("div", "t-notice", ""); R.notice.hidden = true; R.notice._h = true;
-    const tr = h("div", "t-right"); tr.append(R.players, R.conn); top.append(R.stage, R.notice, tr);
+    R.claim = h("div", "t-claim", ""); R.claim.hidden = true; R.claim._h = true;   // 收尾關：已領取 N／全班 M 人（講師等大家領完再按 T 揭曉）
+    const tr = h("div", "t-right"); tr.append(R.players, R.conn); top.append(R.stage, R.notice, R.claim, tr);
     // 左大塊
     const main = h("main", "main"), left = h("div", "left");
     R.levels = h("section", "panel levels");
@@ -73,7 +74,14 @@
     R.relayList = h("div", "relay-list"); R.relayRows = {}; R.relayKeys = "";
     R.relayEmpty = h("div", "relay-empty", "還沒有小組開始接力");
     R.relay.append(R.relayHead, R.relayList, R.relayEmpty);
-    left.append(R.levels, R.votes, R.relay);
+    // 稱號牆（收尾關按 T）：只寫「稱號 ×人數」，不列名字
+    R.titles = h("section", "panel titles"); R.titles.hidden = true; R.titles._h = true;
+    const wh = h("div", "wall-head"); R.wallCount = h("span", "wall-count", ""); R.wallPageInd = h("span", "wall-page", ""); R.wallPageInd.hidden = true; R.wallPageInd._h = true;
+    wh.append(h("h3", "", "全班稱號牆（不列名字）"), R.wallCount, R.wallPageInd);
+    R.wallList = h("div", "wall-list"); R.wallRows = {}; R.wallKeys = ""; R.wallPage = 0; R.wallPages = 1; R.wallOn = false;
+    R.wallEmpty = h("div", "relay-empty", "還沒有人領取稱號");
+    R.titles.append(wh, R.wallList, R.wallEmpty);
+    left.append(R.levels, R.votes, R.relay, R.titles);
 
     // 右欄：成就牆
     const ach = h("aside", "ach"); ach.append(h("h3", "", "全班成就牆"), h("div", "ach-sub", "不列名字"));
@@ -87,7 +95,7 @@
     url.append(h("span", "b-k", "闖關網頁"), h("span", "b-v", SHORT_URL));
     code.append(h("span", "b-k", "場次碼"), h("span", "b-v", String((window.LU_CFG && window.LU_CFG.session) || "")));
     R.reset = h("button", "reset", "新的一堂課"); R.reset.type = "button";
-    const hint = h("div", "b-hint", "← → 換關｜0 報到 O 開場 1–6 關 E 收尾");
+    const hint = h("div", "b-hint", "← → 換關｜0 報到 O 開場 1–6 關 E 收尾｜T 稱號牆");
     bot.append(url, code, hint, R.reset);
     root.append(top, main, bot);
     return R;
@@ -180,6 +188,25 @@
       if (cards) { cls(row, all ? "rc full" : "rc"); hide(row, Math.floor(gi / PAGE_CAP) !== R.relayPage); }
     });
   }
+  const WALL_CAP = 16;   // 稱號牆一頁 16 個（2 欄 × 8 列）；再多就跟接力小卡一樣每 8 秒翻頁
+  function renderTitles(R, c) {
+    const t = c.titles || {}, list = LU.TITLES.filter(x => num(t, x.id) > 0).sort((a, b) => num(t, b.id) - num(t, a.id) || LU.TITLES.indexOf(a) - LU.TITLES.indexOf(b));   // 同人數照稱號表順序
+    const sig = list.map(x => x.id).join("|");
+    if (sig !== R.wallKeys) {   // 名次順序變了才重排節點
+      R.wallKeys = sig;
+      R.wallList.replaceChildren(...list.map(x => {
+        let row = R.wallRows[x.id];
+        if (!row) { row = h("div", "wt"); row._name = h("span", "wt-name", x.name); row._n = h("span", "wt-n", ""); row.append(row._name, row._n); R.wallRows[x.id] = row; }
+        return row;
+      }));
+    }
+    R.wallPages = Math.max(1, Math.ceil(list.length / WALL_CAP));
+    if (R.wallPage >= R.wallPages) R.wallPage = 0;
+    list.forEach((x, i) => { const row = R.wallRows[x.id]; put(row._n, "×" + num(t, x.id)); hide(row, Math.floor(i / WALL_CAP) !== R.wallPage); });
+    put(R.wallPageInd, R.wallPages > 1 ? `第 ${R.wallPage + 1}/${R.wallPages} 頁` : ""); hide(R.wallPageInd, R.wallPages <= 1);
+    put(R.wallCount, `已領取 ${num(c, "claimed")}／全班 ${num(c, "players")} 人`);
+    hide(R.wallEmpty, list.length > 0);
+  }
   function renderAch(R, c) {
     const total = max1(num(c, "players"), ...LU.ACH.map(a => num(c.ach, a.id)));
     LU.ACH.forEach(a => setBar(R.ach[a.id], num(c.ach, a.id), total));
@@ -187,26 +214,31 @@
   // 把整份資料畫上去。idx＝目前關卡（STAGES 的位置）。可以重複呼叫：資料一樣就一次寫入都沒有
   function render(R, c, idx) {
     const s = STAGES[idx];
+    if (s.id !== "end") R.wallOn = false;   // 離開收尾關就收起稱號牆，回來要再按 T 才揭曉
     put(R.stage, stageLabel(s));
     put(R.players, `全班 ${num(c, "players")} 人`);
-    const mode = s.id === "s5" ? "relay" : VOTE_OF[s.id] ? "votes" : "levels";
-    hide(R.levels, mode !== "levels"); hide(R.votes, mode !== "votes"); hide(R.relay, mode !== "relay");
+    const mode = s.id === "s5" ? "relay" : s.id === "end" && R.wallOn ? "titles" : VOTE_OF[s.id] ? "votes" : "levels";
+    hide(R.levels, mode !== "levels"); hide(R.votes, mode !== "votes"); hide(R.relay, mode !== "relay"); hide(R.titles, mode !== "titles");
     if (mode === "levels") renderLevels(R, c);
     if (mode === "votes") renderVotes(R, c, s);
     if (mode === "relay") renderRelay(R, c);
+    if (mode === "titles") renderTitles(R, c);
+    hide(R.claim, s.id !== "end");
+    if (s.id === "end") put(R.claim, `已領取 ${num(c, "claimed")}／全班 ${num(c, "players")} 人` + (R.wallOn ? "" : "｜按 T 揭曉稱號牆"));
     renderAch(R, c);
   }
 
   // 伺服器回的東西不可信：{ok:false}、沒有數字 players、非物件 ＝ 失敗（沿用上一份好資料，不畫零）；
   // 其餘補空欄位、數字清成 0～9999 的整數、接力的棒次只有 === true 才算完成
-  const EMPTY = { players: 0, levels: {}, ach: {}, votes: {}, relay: {}, self0: {}, self1: {} };
+  const EMPTY = { players: 0, levels: {}, ach: {}, votes: {}, relay: {}, self0: {}, self1: {}, titles: {}, claimed: 0 };
   const clean = n => { n = Number(n); return Number.isFinite(n) && n > 0 ? Math.min(9999, Math.round(n)) : 0; };
   const cleanMap = m => { const o = {}; if (isObj(m)) Object.keys(m).forEach(k => { o[k] = clean(m[k]); }); return o; };
   function normalize(c) {
     if (!isObj(c) || c.ok === false || typeof c.players !== "number" || !Number.isFinite(c.players)) return null;
     const o = Object.assign({}, c);
     o.players = clean(c.players);
-    ["levels", "ach", "self0", "self1"].forEach(k => { o[k] = cleanMap(c[k]); });
+    ["levels", "ach", "self0", "self1", "titles"].forEach(k => { o[k] = cleanMap(c[k]); });
+    o.claimed = clean(c.claimed);
     o.votes = {}; if (isObj(c.votes)) Object.keys(c.votes).forEach(k => { o.votes[k] = cleanMap(c.votes[k]); });
     o.relay = {}; if (isObj(c.relay)) Object.keys(c.relay).forEach(g => { const r = isObj(c.relay[g]) ? c.relay[g] : {}; o.relay[g] = { A: r.A === true, B: r.B === true, C: r.C === true }; });
     return o;
@@ -254,15 +286,21 @@
       if (!ask()) return;
       const r = await api.reset();
       put(R.conn, r ? "已清空，新的一堂課開始" : "沒清成功，再按一次"); msgUntil = now() + 5000;
-      if (r) { data = EMPTY; idx = 0; chosen = ""; last = ""; notice(""); paint(); }
+      if (r) { data = EMPTY; idx = 0; chosen = ""; last = ""; R.wallOn = false; notice(""); paint(); }
     }
     function key(e) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "t" || e.key === "T") { if (IDS[idx] === "end") { R.wallOn = !R.wallOn; last = ""; paint(); } return; }   // 收尾關：揭曉／收起稱號牆
       if (e.key === "ArrowRight") go(idx + 1);
       else if (e.key === "ArrowLeft") go(idx - 1);
       else { const id = keyStage(e.key), i = IDS.indexOf(id); if (i >= 0) go(i); }
     }
-    function rotate() { if (R.relayPages > 1) { R.relayPage = (R.relayPage + 1) % R.relayPages; last = ""; paint(); } }   // 接力小卡超過一頁：自動翻頁
+    function rotate() {   // 接力小卡／稱號牆超過一頁：自動翻頁
+      let turned = false;
+      if (R.relayPages > 1) { R.relayPage = (R.relayPage + 1) % R.relayPages; turned = true; }
+      if (R.wallPages > 1) { R.wallPage = (R.wallPage + 1) % R.wallPages; turned = true; }
+      if (turned) { last = ""; paint(); }
+    }
     return { tick, go, key, reset, paint, rotate, idx: () => idx };
   }
 
@@ -274,7 +312,8 @@
     for (let i = 0; i < total - 6; i++) { const g = (Math.floor(i / 3) + 12) % 14 + 1 + "-" + (i % 3 + 1); relay[g] = { A: i % 2 === 0, B: i % 3 === 0, C: i % 5 === 0 }; }
     for (let n = 1; n <= Math.min(6, total); n++) relay["線上" + (n + 4) + "-1"] = { A: true, B: n % 2 === 0 };   // 跟真的組別代碼同格式（最長的「線上10-1」）
     const votes = { "open.self": { A: 20, B: 14, C: 9, D: 6, E: 3, F: 1, G: 1 }, "open.agent": { goal: 30, tool: 22, steps: 12, start: 3 }, "end.vote": { goal: 25, tool: 20, steps: 10, start: 4 }, "end.self": { 1: 1, 2: 5, 3: 12, 4: 20, 5: 8, 6: 3, 7: 1 } };
-    const d = { players: 50, levels: { 1: 8, 2: 9, 3: 13, 4: 20 }, ach: { grilled: 40, reviewer: 33, lv4: 20, caught3: 24, team: 18, plan: 5 }, votes, relay, self0: { 1: 20, 2: 15, 3: 8, 4: 4, 5: 2, 6: 1 }, self1: { 3: 10, 4: 25, 5: 10, 6: 4, 7: 1 } };
+    const d = { players: 50, levels: { 1: 8, 2: 9, 3: 13, 4: 20 }, ach: { grilled: 40, reviewer: 33, lv4: 20, caught3: 24, team: 18, plan: 5 }, votes, relay, self0: { 1: 20, 2: 15, 3: 8, 4: 4, 5: 2, 6: 1 }, self1: { 3: 10, 4: 25, 5: 10, 6: 4, 7: 1 },
+      titles: { t2: 7, t10: 6, t1: 4, t4: 3, t15: 3, t33: 3, t3: 2, t12: 2, t19: 2, t24: 2, t30: 2, t31: 2, t39: 2, t5: 1, t20: 1, t26: 1, t34: 1, t36: 1, t40: 1, t43: 1 }, claimed: 47 };   // 20 種稱號 → 稱號牆兩頁；加總 47＝已領取
     return { state: async () => d, setStage: async () => ({ ok: true }), reset: async () => ({ ok: true }) };
   }
   function boot() {

@@ -60,5 +60,6 @@ window.STAGES = [
       { key: "1", label: "A 問問題" }, { key: "2", label: "B 常用提示詞" }, { key: "3", label: "C 自己的 Gem" }, { key: "4", label: "D 同事也在用" },
       { key: "5", label: "E 小工具" }, { key: "6", label: "F 自己會上班" }, { key: "7", label: "G 好幾個 AI 分工" } ] },
     { type: "plan", id: "end.plan" },
+    { type: "title" },   // 結業稱號＋積分（不算任務、不給經驗值）
     { type: "link", href: "appendix.html", label: "打開附錄（Skill 包、提示詞卡、名詞卡全文）" } ] }
 ];

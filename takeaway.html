@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>我的 AI 團隊設計單</title>
-<link rel="stylesheet" href="theme.css?v=202611131446"><link rel="stylesheet" href="app.css?v=202611131446">
+<link rel="stylesheet" href="theme.css?v=202611131720"><link rel="stylesheet" href="app.css?v=202611131720">
 <style>
   .sheet { max-width: 794px; margin: 0 auto; padding: var(--sp-4); }
   .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-4) 0; }
@@ -15,6 +15,7 @@
   .rows { margin: 0; padding: 0; list-style: none; }
   .rows li { margin: var(--sp-1) 0; }
   .rows b { display: inline-block; min-width: 9.5em; }
+  .title-line { font-weight: 800; font-size: var(--fs-lg); }
   @page { size: A4 portrait; margin: 12mm; }
   @media print {
     body { background: #fff; color: #000; font-size: 11pt; line-height: 1.5; }
@@ -27,7 +28,7 @@
   }
 </style></head>
 <body><main class="sheet" id="sheet"></main>
-<script src="core.js?v=202611131446"></script><script src="pixel.js?v=202611131446"></script><script src="avatar.js?v=202611131446"></script>
+<script src="core.js?v=202611131720"></script><script src="pixel.js?v=202611131720"></script><script src="avatar.js?v=202611131720"></script>
 <script>
 (function () {
   const root = document.getElementById("sheet");
@@ -47,6 +48,8 @@
   const tableName = team => /^線上(\d+)$/.test(String(team)) ? `線上第 ${String(team).slice(2)} 組` : `第 ${team} 桌`;
   const head = h("header", "head"), t = h("div");
   t.append(h("h1", "", "我的 AI 團隊設計單"), h("p", "", `${st.player ? `${st.player} 號` : ""}${st.player && st.team ? "｜" : ""}${st.team ? tableName(st.team) : ""}`), h("p", "", `遊戲等級：Lv.${lv} ${L.name}`));
+  const tt = st.claim && LU.TITLES.find(x => x.id === st.claim.main);   // 收尾關領過稱號才印（積分最後才揭曉）
+  if (tt) t.append(h("p", "title-line", `結業稱號：【${tt.name}】｜總積分 ${Number((st.claim.score || {}).total) || 0}`));
   const nm = n => (LU.LEVELS[n - 1] ? `Lv.${n} ${LU.LEVELS[n - 1].name}` : "（還沒填）");
   head.append(AVATAR.el(lv, 96), t); root.append(head);
   function cell(title, value, emptyText) {

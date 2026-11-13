@@ -55,3 +55,47 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
   .actions > span { flex-basis: 100%; }
 }
 .btn:disabled { opacity: .45; cursor: default; }   /* 已送出鎖住時看得出來按不了 */
+/* 結業稱號卡（收尾關，2026-11-13）：像一張結業證書，金色留給經驗值，這裡只用主文字色＋面板色 */
+.title-card { border: 2px solid var(--fg); outline: 1px solid var(--line-strong); outline-offset: -8px; border-radius: var(--r-card); background: var(--panel-2); padding: var(--sp-6) var(--sp-5); text-align: center; }
+.tc-kicker { margin: 0; font: 700 var(--fs-xs) var(--font-mono); letter-spacing: .12em; color: var(--fg-dim); }
+.tc-name { margin: var(--sp-2) 0 var(--sp-3); font-size: var(--fs-2xl); line-height: 1.25; overflow-wrap: anywhere; }
+.tc-why { margin: 0 auto var(--sp-4); max-width: 30em; }
+.tc-score { display: flex; justify-content: center; align-items: baseline; gap: var(--sp-3); margin: 0; }
+.tc-score span { color: var(--fg-dim); }
+.tc-score strong { font: 800 48px/1.1 var(--font-mono); }
+.tc-parts { list-style: none; padding: 0; margin: var(--sp-3) 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-2); }
+.tc-parts li { display: flex; flex-direction: column; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: var(--sp-2) var(--sp-1); line-height: 1.3; }
+.tc-parts span { font-size: var(--fs-xs); color: var(--fg-dim); }
+.tc-parts b { font: 800 var(--fs-lg) var(--font-mono); }
+.tc-also { margin: var(--sp-2) 0 0; color: var(--fg-dim); }
+.title-card .actions { justify-content: center; }
+@media (max-width: 600px) {
+  .title-card { padding: var(--sp-5) var(--sp-3); outline-offset: -6px; }
+  .tc-name { font-size: 24px; }
+  .tc-score strong { font-size: 40px; }
+  .tc-parts { gap: var(--sp-1); }
+  .tc-parts span { font-size: 13px; }
+  .tc-parts b { font-size: 18px; }
+}
+/* 目錄＋一關一頁（T7，2026-11-13）：版面跟宴會廳一樣，配色沿用風格 C；金色留給經驗值，「講師進行中」用講師的冷藍 */
+.menu-list { list-style: none; margin: var(--sp-3) 0 var(--sp-4); padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.menu-row { width: 100%; box-sizing: border-box; display: grid; grid-template-columns: 5.5em minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3); min-height: var(--btn-h); padding: var(--sp-3) var(--sp-4); text-align: left; font: inherit; line-height: 1.35; color: var(--fg); background: var(--panel-2); border: 1.5px solid var(--line-strong); border-radius: var(--r-card); cursor: pointer; }
+.menu-row:hover { border-color: var(--fg); }
+.menu-row.demo { border-style: dotted; border-color: var(--cool); }
+.mr-no { font: 800 var(--fs-sm) var(--font-mono); color: var(--fg-dim); }
+.mr-name { font-weight: 700; min-width: 0; }
+.mr-name small { display: block; font: 700 var(--fs-xs) var(--font-mono); color: var(--fg-dim); }
+.mr-st { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; white-space: nowrap; }
+.mr-cnt { font: 700 var(--fs-sm) var(--font-mono); color: var(--fg-dim); }
+.menu-row.full .mr-cnt { color: var(--ok); }
+.mr-now { font-size: var(--fs-xs); font-weight: 700; line-height: 1.6; color: var(--on-cool); background: var(--cool); border-radius: var(--r-pill); padding: 0 var(--sp-2); }
+.mr-now[hidden], .pager[hidden], .pager [hidden] { display: none; }
+.app { padding-bottom: calc(var(--btn-h) + var(--sp-8)); }   /* 底部固定按鈕列不蓋到最後一行 */
+.pager { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; gap: var(--sp-2); padding: var(--sp-2) max(var(--sp-4), calc((100vw - var(--app-max)) / 2 + var(--sp-4))) calc(var(--sp-2) + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line); }
+.pager .btn { flex: 1 1 0; min-width: 0; white-space: nowrap; padding: 0 var(--sp-3); }
+@media (max-width: 600px) {
+  .menu-row { grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-1) var(--sp-3); padding: var(--sp-3); }
+  .mr-no { grid-column: 1 / -1; }
+  .mr-no:empty { display: none; }   /* 報到／開場／收尾：關名已含名稱，不重複小標 */
+  .pager .btn { padding: 0 var(--sp-2); }
+}

@@ -14,10 +14,21 @@
     });
     const out = Object.assign({}, b, a, { sheet, sheetAt, done: Object.assign({}, b.done, a.done), picks: Object.assign({}, b.picks, a.picks),
       pass: Math.max(a.pass || 0, b.pass || 0), caught: Math.max(a.caught || 0, b.caught || 0) });
+    // 稱號用的原始資料：時間取最早、次數取最大、複製過取聯集（舊存檔沒有這些欄位＝當空的）
+    const early = (x, y) => (x && y ? Math.min(x, y) : x || y);
+    const each = (x, y, f) => { const o = Object.assign({}, y, x); Object.keys(y || {}).forEach(k => { o[k] = f((x || {})[k], y[k]); }); return o; };
+    ["doneAt", "stageSeenAt"].forEach(k => { if (a[k] || b[k]) out[k] = each(a[k], b[k], early); });
+    if (a.stageLog || b.stageLog) out.stageLog = LU.mergeLog(a.stageLog, b.stageLog);   // 講師切關時間軸：聯集、排序、去重
+    ["voteN", "sortN"].forEach(k => { if (a[k] || b[k]) out[k] = each(a[k], b[k], (x, y) => Math.max(x || 0, y || 0)); });
+    if (a.copied || b.copied) out.copied = Object.assign({}, b.copied, a.copied);
+    if (a.seatedAt || b.seatedAt) out.seatedAt = early(a.seatedAt, b.seatedAt);
+    if (a.askN || b.askN) out.askN = Math.max(a.askN || 0, b.askN || 0);
+    if (a.manualCopy || b.manualCopy) out.manualCopy = true;
     // 兩邊不是同一堂課（resetId 不同）：闖關進度整包用 resetId 比較大的那一邊，不能把上一堂的進度合回來；填的字（sheet）照時間戳合
     if (typeof a.resetId === "number" && typeof b.resetId === "number" && a.resetId !== b.resetId) {
       const win = a.resetId > b.resetId ? a : b;
-      ["done", "pass", "caught", "picks", "player", "relayGroup", "relayRole", "self0", "self1", "resetId"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
+      ["done", "pass", "caught", "picks", "player", "relayGroup", "relayRole", "self0", "self1", "resetId",
+       "doneAt", "stageSeenAt", "stageLog", "seatedAt", "askN", "voteN", "sortN", "copied", "manualCopy", "claim"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
       return out;
     }
     ["team", "acct", "player", "resetId", "relayGroup", "relayRole", "self0", "self1"].forEach(k => {
@@ -27,7 +38,8 @@
   }
   const save = () => { const cur = API.store.fresh ? API.store.fresh(KEY, null) : null; if (cur) st = mergeState(st, cur); API.store.set(KEY, st); };
   function snapshot() {
-    API.enqueue({ kind: "snap", value: JSON.stringify({ lv: LU.level(st), ach: LU.achievements(st), self0: st.self0 || 0, self1: st.self1 || 0, acct: st.acct }) });
+    API.enqueue({ kind: "snap", value: JSON.stringify({ lv: LU.level(st), ach: LU.achievements(st), self0: st.self0 || 0, self1: st.self1 || 0, acct: st.acct,
+      title: st.claim ? st.claim.main : undefined, score: st.claim && st.claim.score ? st.claim.score.total : undefined }) });   // 沒領稱號就不帶（JSON 會略過 undefined）
     return flushed();
   }
   // 送出後更新 HUD 的「待送出 N 筆」（0 筆就藏起來）
@@ -37,9 +49,10 @@
   function flushed() { const p = Promise.resolve(API.flush()); p.then(notifyFlush, () => {}); return p; }
   const ctx = {
     st: () => st, luc: window.LUC,
-    done(id, extra) { const before = st; st = LU.markDone(st, id, extra); save(); renderHud(); const up = LU.levelUp(before, st); if (up) showLevelUps(LU.level(before), up); return snapshot(); },
+    done(id, extra) { const before = st; st = LU.markDone(st, id, extra, Date.now()); save(); renderHud(); const up = LU.levelUp(before, st); if (up) showLevelUps(LU.level(before), up); return snapshot(); },
     sheet(field, value) { st = Object.assign({}, st, { sheet: Object.assign({}, st.sheet, { [field]: value }), sheetAt: Object.assign({}, st.sheetAt, { [field]: Date.now() }) }); save(); },
     set(patch) { st = Object.assign({}, st, patch); save(); },   // 接力選組別／角色用
+    claim(c) { st = Object.assign({}, st, { claim: c }); save(); return snapshot(); },   // 領取／重新計算稱號：存下來並送快照
     send(item) { API.enqueue(item); return flushed(); },
     pending: () => API.pending(),
     onFlush(f) { flushWatchers.push(f); return () => { const i = flushWatchers.indexOf(f); if (i >= 0) flushWatchers.splice(i, 1); }; }
@@ -59,6 +72,7 @@
     hud.l4.textContent = p.next ? `　再完成幾件就升到 Lv.${p.next}` : "　今天的目標達成：Lv.4 專員";
     hud.bar.setAttribute("aria-label", hud.label.textContent);
     hud.no.textContent = st.player ? `${st.player} 號｜${BLOCKS.tableName(st.team)}` : (st.team ? "網路不太穩，先開始玩，編號稍後補上" : "");
+    renderMenu();
   }
   // ── 升級畫面：只播一次，按繼續才關（Esc 也可關；開著時背景 inert） ──
   let openUps = 0;
@@ -106,7 +120,7 @@
         if (!acct) { msg.textContent = "先選帳號"; return; }
         go.disabled = true;   // 連點只算一次
         msg.textContent = "入座中…";
-        st = Object.assign({}, st, { team: sel.value, acct }); save();
+        st = Object.assign({}, st, { team: sel.value, acct, seatedAt: st.seatedAt || Date.now() }); save();
         const j = await API.join(sel.value);
         if (j) { st = Object.assign({}, st, { player: j.player, resetId: j.resetId }); save(); }   // 沒連上：player 維持 0，HUD 會提示，之後由輪詢補號
         start(true);
@@ -122,6 +136,7 @@
     const text = `我正在上「AI 團隊自己組團」研習的「${s.title}」這一關（${s.ppt}）。我卡在：（寫你卡在哪）。請用不懂技術的人聽得懂的話，一步一步教我。`;
     const msg = h("span", {}), box = h("div", { class: "paper" }), live = h("div", { "aria-live": "polite" }, msg, box);
     const btn = h("button", { class: "btn", onclick: async () => {
+      ctx.set({ askN: (st.askN || 0) + 1 });   // 稱號用：按了幾次「卡住了？」
       let ok = false;
       try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
       if (ok) { BLOCKS.flash(btn, "✓ 已複製，到 Gemini 貼上", 3000); msg.textContent = ""; box.replaceChildren(); }
@@ -131,15 +146,56 @@
   }
   const stageLabel = id => ({ s0: "報到", open: "開場", end: "收尾" })[id] || (/^s[1-6]$/.test(id) ? `第 ${id.slice(1)} 關` : "");
   function walk(n, c, f) { if (n.className && String(n.className).split(" ").includes(c)) f(n); Array.from(n.children || []).forEach(k => walk(k, c, f)); }
+  // ── 目錄＋一關一頁（T7，比照宴會廳）：九關的 DOM 只建一次，換頁只切 hidden，打到一半的字不會不見；位置記在網址 #s1 ──
+  const IDS = STAGES.map(s => s.id), menu = { el: null, h2: null, rows: {} };
+  const tasksOf = id => LU.TASKS.filter(x => x.id.split(".")[0] === id);
+  function buildMenu() {
+    menu.h2 = h("h2", { tabindex: "-1" }, "闖關目錄");
+    const list = h("ol", { class: "menu-list" }, STAGES.map(s => {
+      const cnt = h("span", { class: "mr-cnt" }), now = h("span", { class: "mr-now" }, "講師進行中"), row = h("button", { class: "menu-row" + (s.demo ? " demo" : ""), "data-stage": s.id, onclick: () => go(s.id) },
+        h("span", { class: "mr-no" }, /^s[1-6]$/.test(s.id) ? stageLabel(s.id) : ""), h("span", { class: "mr-name" }, s.title, h("small", {}, `${s.time}｜PPT ${s.ppt}`)), h("span", { class: "mr-st" }, now, cnt));
+      now.hidden = true; menu.rows[s.id] = { row, cnt, now };
+      return h("li", {}, row);
+    }));
+    const link = (STAGES.find(s => s.id === "end") || { blocks: [] }).blocks.find(b => b.type === "link");   // 附錄：跟收尾關同一個網址
+    menu.el = h("section", { class: "stage menu", id: "menu" }, h("p", { class: "step-no" }, "點一關進去；講師上到哪一關會標「講師進行中」，你可以自由切換"), menu.h2, list, link ? R.link(link) : "");
+    return menu.el;
+  }
+  function renderMenu() {   // 已做幾件／共幾件、全做完打勾、講師正在上的那關
+    const done = st.done || {};
+    STAGES.forEach(s => {
+      const r = menu.rows[s.id]; if (!r) return;
+      const ts = tasksOf(s.id), n = ts.filter(x => done[x.id]).length, full = ts.length > 0 && n === ts.length;
+      r.cnt.textContent = `${full ? "✓ " : ""}${n}／${ts.length} 件`; cls(r.row, "full", full); r.now.hidden = lastStage !== s.id;
+    });
+  }
+  const pager = { back: h("button", { class: "btn", onclick: () => go("menu") }, "← 目錄"), prev: h("button", { class: "btn", onclick: () => step(-1) }, "上一關"), next: h("button", { class: "btn primary", onclick: () => step(1) }, "下一關 →") };
+  pager.el = h("nav", { class: "pager", "aria-label": "換關" }, pager.back, pager.prev, pager.next);
+  let view = "";
+  const here = () => { const id = String((typeof location !== "undefined" && location.hash) || "").replace(/^#/, ""); return IDS.includes(id) ? id : "menu"; };   // # 或 #menu 或亂寫的＝目錄
+  const stageH2 = {};
+  function route(user) {   // user＝按鈕換頁或瀏覽器上一頁：才捲到頂、才搬焦點（第一次載入保留瀏覽器自己的捲動位置）
+    if (!menu.el) return;
+    const id = here(), i = IDS.indexOf(id);
+    menu.el.hidden = id !== "menu"; IDS.forEach(k => { if (stageEls[k]) stageEls[k].hidden = k !== id; });
+    pager.el.hidden = id === "menu"; pager.prev.hidden = i <= 0; pager.next.hidden = i < 0 || i >= IDS.length - 1;
+    if (id === view) return;
+    view = id;
+    if (!user) return;
+    if (window.scrollTo) window.scrollTo(0, 0);
+    const t = id === "menu" ? menu.h2 : stageH2[id]; if (t && t.focus) t.focus({ preventScroll: true });   // 鍵盤／螢幕閱讀器使用者從新的一頁開頭讀起
+  }
+  function go(id) { location.hash = "#" + id; route(true); }   // 真瀏覽器還會再觸發 hashchange → route，同一頁不會再捲
+  function step(d) { const i = IDS.indexOf(here()); if (i >= 0 && IDS[i + d]) go(IDS[i + d]); }
+  if (window.addEventListener) window.addEventListener("hashchange", () => route(true));   // 瀏覽器上一頁／下一頁
   let started = false;
   function start(focusFirst) {
     if (started) return;   // 只准啟動一次，不會長出兩條輪詢
     started = true;
     const root = document.getElementById("app");
-    root.replaceChildren(banner(), sync.bar, h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)));
-    let firstH2 = null;
+    root.replaceChildren(banner(), sync.bar, h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)), buildMenu());
     STAGES.forEach(s => {   // 報到那一關交件後也留著，可以改、可以再交
-      const h2 = h("h2", { tabindex: "-1" }, s.title); if (!firstH2) firstH2 = h2;
+      const h2 = h("h2", { tabindex: "-1" }, s.title); stageH2[s.id] = h2;
       const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id },
         h("p", { class: "step-no" }, `${stageLabel(s.id)}｜${s.time}｜PPT ${s.ppt}`), h2, s.blocks.map(renderBlock), askBtn(s));
       const demo = s.blocks.find(b => b.type === "demo"), wraps = [];
@@ -147,10 +203,11 @@
       if (demo) wraps.forEach((w, i) => { if (demo.cards[i]) w.append(AVATAR.el(demo.cards[i].lv, 64)); });
       stageEls[s.id] = el; root.append(el);
     });
-    renderHud(); snapshot(); poll();
-    if (focusFirst && firstH2 && firstH2.focus) firstH2.focus();   // 入座後把焦點交給第一個標題（螢幕閱讀器／鍵盤使用者不會停在已消失的按鈕）
+    root.append(pager.el);
+    renderHud(); route(); snapshot(); poll();
+    if (focusFirst && menu.h2.focus) menu.h2.focus();   // 入座後把焦點交給目錄標題（螢幕閱讀器／鍵盤使用者不會停在已消失的按鈕）
   }
-  // ── 輪詢：講師上到哪一關（只換 class，不捲動）＋接力 ──
+  // ── 輪詢：講師上到哪一關（只更新目錄上的「講師進行中」，不換頁、不捲動）＋接力 ──
   let lastStage = "", lastRelay = null;
   // 下一輪等多久：平常 15 秒；只有 B／C 棒在等前一棒的文字時才 5 秒（前一棒文字到了就回 15 秒；A 棒不用密集）
   const PREV = { B: "A", C: "B" };
@@ -158,7 +215,14 @@
     const prev = PREV[st.relayRole];
     return st.relayGroup && prev && !(relay && relay[prev]) ? 5000 : 15000;
   }
-  async function poll() {
+  let pollTimer = null, polling = null;
+  function poll() {   // 同時只跑一輪；切回分頁時插隊輪詢也不會多長出一條
+    if (polling) return polling;
+    clearTimeout(pollTimer); pollTimer = null;
+    polling = pollOnce().finally(() => { polling = null; });
+    return polling;
+  }
+  async function pollOnce() {
     let again = true;
     try {
       if (st.team && !st.player) {   // 入座時沒連上：每輪補一次號碼
@@ -166,20 +230,20 @@
         if (jn) { st = Object.assign({}, st, { player: jn.player, resetId: jn.resetId }); save(); renderHud(); snapshot(); }
       }
       const j = await API.ping(st.relayGroup || "");   // 每次讀當下的 st，中途選了組別立刻生效
-      if (j && j.stage && j.stage !== lastStage) {
-        Object.values(stageEls).forEach(e => cls(e, "now", false));
-        if (stageEls[j.stage]) cls(stageEls[j.stage], "now", true);
-        lastStage = j.stage;
-      }
+      // 只認伺服器真的回了 stage 欄位（字串）；n8n 出錯回的 {message:...} 不能當成「切回報到」。空字串＝講師還沒切過關＝投影幕停在報到；不認得的關卡一律不記
+      const raw = j && typeof j.stage === "string" ? (j.stage || "s0") : "", stage = LU.STAGE_ORDER.includes(raw) ? raw : "";
+      const log = LU.mergeLog(st.stageLog, []);   // 先清掉壞掉的項目再比對最後一筆
+      if (stage && (!log.length || log[log.length - 1][1] !== stage)) ctx.set({ stageLog: log.concat([[Date.now(), stage]]) });   // 講師切關時間軸：看到的關卡改變才加一筆（手速從這裡起算）
+      if (stage && stage !== lastStage) { lastStage = stage; renderMenu(); }   // 學員自由切換（比照宴會廳）：講師切關不跳轉、不跳提示條
       if (j && j.relay) { lastRelay = j.relay; if (window.RELAY_UPDATE) window.RELAY_UPDATE(j.relay); }
       // 講師按了新的一堂課。resetId 是數字（含 0）才清；undefined＝入座沒連上，不動
       if (j && typeof st.resetId === "number" && Number(j.resetId) > st.resetId) { again = false; // 只清闖關進度；學員自己寫的內容（sheet）、桌號、帳號都留著，重開後用同一桌重新取號
-        st = { sheet: st.sheet || {}, sheetAt: st.sheetAt || {}, team: st.team, acct: st.acct, done: {}, pass: 0, caught: 0, player: 0, resetId: Number(j.resetId) };   // resetId 記新的：別的舊分頁合併時會輸給它，清掉的進度不會復活
+        st = { sheet: st.sheet || {}, sheetAt: st.sheetAt || {}, team: st.team, acct: st.acct, done: {}, pass: 0, caught: 0, player: 0, resetId: Number(j.resetId), seatedAt: Date.now() };   // resetId 記新的：別的舊分頁合併時會輸給它，清掉的進度不會復活
         API.store.set(KEY, st); API.store.set("lu-q-" + S, []); location.reload(); return; }   // 直接寫、不跟舊的合併，否則清掉的進度會被合回來
       await API.flush(); notifyFlush();
     } catch (e) { /* 單輪失敗不影響下一輪 */ }
     finally {
-      if (again) { setTimeout(poll, nextPollMs(st, lastRelay) * (0.85 + Math.random() * 0.3)); }   // 錯開 ±15%
+      if (again) { pollTimer = setTimeout(poll, nextPollMs(st, lastRelay) * (0.85 + Math.random() * 0.3)); }   // 錯開 ±15%
     }
   }
   // 別的分頁改了同一份進度：吸收進來並更新 HUD；進度（done）變了就出一條提示，由學員決定要不要重新整理；只是填字就不動畫面
@@ -193,6 +257,7 @@
     if (changed) showSync();
   }
   if (window.addEventListener) window.addEventListener("storage", onStorage);
-  window.APP = { ctx, poll, nextPollMs, mergeState, onStorage, state: () => st };   // 測試與除錯用
+  if (document.addEventListener) document.addEventListener("visibilitychange", () => { if (started && document.visibilityState === "visible") poll(); });   // 切回這個分頁：馬上問講師上到哪（背景分頁的計時器會被瀏覽器放慢）
+  window.APP = { ctx, poll, nextPollMs, mergeState, onStorage, route, state: () => st };   // 測試與除錯用
   st.team ? start() : seat(document.getElementById("app"));
 })();
