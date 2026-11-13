@@ -35,3 +35,23 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .sync-bar { background: var(--panel-2); border: 1.5px solid var(--line-strong); border-radius: var(--r-card); padding: var(--sp-2) var(--sp-3); margin: var(--sp-2) 0; font-size: var(--fs-sm); }
 .sync-bar.hide { display: none; }
 .btn.small { min-height: var(--tap-min); font-size: var(--fs-sm); padding: 0 var(--sp-3); }
+/* 按鈕與文字自適應（2026-11-13）：選項成組換行、送出列獨立一排、手機一個選項一行 */
+.btn { white-space: normal; line-height: 1.3; max-width: 100%; box-sizing: border-box; }
+.opts { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0; }
+.btn.opt { display: inline-flex; align-items: center; gap: .5em; text-align: left; padding: var(--sp-2) var(--sp-4); }
+.btn.opt .tick { flex: none; text-align: center; color: var(--fg-dim); }
+.btn.opt[aria-pressed="true"] .tick { color: inherit; }
+.actions { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-top: var(--sp-3); }
+.actions > span:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; }   /* 空的不佔一行，但留在輔助工具樹裡，第一則提示才唸得出來 */
+.actions > span { flex: 1 1 12em; min-width: 0; }
+@media (max-width: 600px) {
+  body { font-size: 17px; }
+  .app { padding: var(--sp-3); }
+  .stage { padding: var(--sp-4); }
+  .btn { font-size: 16px; padding: var(--sp-2) var(--sp-4); }
+  .opts { flex-direction: column; }
+  .opts .btn { width: 100%; justify-content: flex-start; }
+  .actions > .btn, .actions > a.btn { flex: 1 1 100%; justify-content: center; text-align: center; }
+  .actions > span { flex-basis: 100%; }
+}
+.btn:disabled { opacity: .45; cursor: default; }   /* 已送出鎖住時看得出來按不了 */

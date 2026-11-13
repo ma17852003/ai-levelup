@@ -95,12 +95,12 @@
     const sel = h("select", { "aria-label": "桌號" }, tables.map(x => h("option", { value: x }, /線上/.test(x) ? x.replace("線上", "線上第 ") + " 組" : `第 ${x} 桌`)));
     let acct = "";
     const ticks = [], accts = [["personal", "個人 Google 帳號（有 Skills）"], ["school", "學校帳號（做成 Gem）"]].map(([k, l]) => {
-      const tk = h("span", { class: "tick", "aria-hidden": "true" }); ticks.push(tk);
-      return h("button", { class: "btn", "aria-pressed": "false", onclick: e => { acct = k; accts.forEach((x, i) => { x.setAttribute("aria-pressed", "false"); ticks[i].textContent = ""; }); e.currentTarget.setAttribute("aria-pressed", "true"); tk.textContent = "✓"; } }, tk, l);
+      const tk = h("span", { class: "tick", "aria-hidden": "true" }, "○"); ticks.push(tk);
+      return h("button", { class: "btn opt", "aria-pressed": "false", onclick: e => { acct = k; accts.forEach((x, i) => { x.setAttribute("aria-pressed", "false"); ticks[i].textContent = "○"; }); e.currentTarget.setAttribute("aria-pressed", "true"); tk.textContent = "✓"; } }, tk, l);
     });
     const msg = h("p", { "aria-live": "polite" });
     root.replaceChildren(banner(), h("section", { class: "stage" }, h("h2", {}, "報到"), h("p", {}, "左邊開這個網頁，右邊開 Gemini。"), h("label", {}, "你坐第幾桌？"), sel,
-      h("p", {}, "你今天用哪個帳號登入 Gemini？"), accts, h("p", { class: "step-no" }, "Gem＝存好指令的專屬助理；Skill＝寫好的一套做事方法（SOP，標準作業流程），打 @ 叫出來"), h("button", { class: "btn primary", onclick: async e => {
+      h("p", {}, "你今天用哪個帳號登入 Gemini？"), h("div", { class: "opts" }, accts), h("p", { class: "step-no" }, "Gem＝存好指令的專屬助理；Skill＝寫好的一套做事方法（SOP，標準作業流程），打 @ 叫出來"), h("button", { class: "btn primary", onclick: async e => {
         const go = e.currentTarget;
         if (go.disabled) return;
         if (!acct) { msg.textContent = "先選帳號"; return; }
