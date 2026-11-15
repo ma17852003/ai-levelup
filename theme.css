@@ -28,7 +28,7 @@
 }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; transition-delay: 0s !important; }   /* 延遲也歸零：清單、角色卡、長條、經驗條直接是最後的樣子 */
 }
 
 /* 方向 C：遊戲狀態列 GAME HUD，疊在共用 :root 之上 */
@@ -74,7 +74,7 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: var(--fs-md)/va
 .bucket { min-height: 120px; border: 1.5px dashed var(--line-strong); border-radius: var(--r-card); padding: var(--sp-2); }
 .chip { display: inline-flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--sp-3); margin: 4px; border-radius: var(--r-pill); background: var(--panel-2); border: 1px solid var(--line-strong); color: var(--fg); cursor: grab; font-size: var(--fs-md); }
 .chip[aria-pressed="true"] { border-color: var(--fg); }
-.levelup { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg-deep) 94%, transparent); display: grid; place-items: center; z-index: 20; text-align: center; }
+.levelup { position: fixed; inset: 0; background: rgba(13, 16, 34, .94); background: color-mix(in srgb, var(--bg-deep) 94%, transparent); display: grid; place-items: center; z-index: 20; text-align: center; }
 .levelup h1 { font: 700 clamp(36px, 10vw, 64px) var(--font-latin-display); letter-spacing: .12em; color: var(--gold); margin: 0; }
 .levelup .flip { display: inline-block; animation: flip var(--t-crest-flip) var(--ease-out) 1; }
 @keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0); } }

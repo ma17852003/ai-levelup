@@ -180,6 +180,8 @@
     const team = (done["s5.relay"] ? 20 : 0) + (done["s5.card"] ? 10 : 0) + (done["end.plan"] ? 10 : 0);
     return { total: xp + speed + correct + growth + team, xp, speed, correct, growth, team };
   }
+  // 每一項的實際上限（集換卡能力值長條的滿格；有測試對 score 驗證）：經驗值＝任務 EXP 加總、手速＝每件 +5、答對＝先猜 2×10＋抓錯 3×10＋考試 5×5、成長＝6 級×5、團隊＝20＋10＋10
+  const SCORE_MAX = { xp: TASKS.reduce((s, x) => s + x.xp, 0), speed: 5 * TASKS.length, correct: 75, growth: 30, team: 40 };
   // ── 以下函式會被 tools/create_wf.py 原樣嵌進 n8n（單一來源），只准用純 JS ──
   function lastReset(rows) { return rows.filter(r => r.Kind === "reset").reduce((m, r) => Math.max(m, Number(r.Id)), 0); }
   // 這一輪的人：同一台電腦（Cid）只算一個人、用第一次入座的順序排號；桌號用最新那列
@@ -229,5 +231,5 @@
     return { resetId, stage, players: people.length, levels, ach, self0, self1, votes, relay, titles, claimed };
   }
   window.LU = { LEVELS, TASKS, ACH, markDone, level, progress, segments, levelUp, achievements, roster, numberOf, relayFor, foldClass,
-    STAGE_ORDER, GUESS, COPY_CARDS, TITLES, titles, score, mergeLog, titleWeight, pickTitle };
+    STAGE_ORDER, GUESS, COPY_CARDS, TITLES, titles, score, mergeLog, titleWeight, pickTitle, SCORE_MAX };
 })();

@@ -28,7 +28,7 @@
     if (typeof a.resetId === "number" && typeof b.resetId === "number" && a.resetId !== b.resetId) {
       const win = a.resetId > b.resetId ? a : b;
       ["done", "pass", "caught", "picks", "player", "relayGroup", "relayRole", "self0", "self1", "resetId",
-       "doneAt", "stageSeenAt", "stageLog", "seatedAt", "askN", "voteN", "sortN", "copied", "manualCopy", "claim"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
+       "doneAt", "stageSeenAt", "stageLog", "seatedAt", "askN", "voteN", "sortN", "copied", "manualCopy", "claim", "cardSeen"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
       return out;
     }
     ["team", "acct", "player", "resetId", "relayGroup", "relayRole", "self0", "self1"].forEach(k => {
@@ -49,7 +49,7 @@
   function flushed() { const p = Promise.resolve(API.flush()); p.then(notifyFlush, () => {}); return p; }
   const ctx = {
     st: () => st, luc: window.LUC,
-    done(id, extra) { const before = st; st = LU.markDone(st, id, extra, Date.now()); save(); renderHud(); const up = LU.levelUp(before, st); if (up) showLevelUps(LU.level(before), up); return snapshot(); },
+    done(id, extra) { const before = st; st = LU.markDone(st, id, extra, Date.now()); save(); renderHud(true); const up = LU.levelUp(before, st); if (up) showLevelUps(LU.level(before), up); return snapshot(); },
     sheet(field, value) { st = Object.assign({}, st, { sheet: Object.assign({}, st.sheet, { [field]: value }), sheetAt: Object.assign({}, st.sheetAt, { [field]: Date.now() }) }); save(); },
     set(patch) { st = Object.assign({}, st, patch); save(); },   // 接力選組別／角色用
     claim(c) { st = Object.assign({}, st, { claim: c }); save(); return snapshot(); },   // 領取／重新計算稱號：存下來並送快照
@@ -62,17 +62,26 @@
   hud.label.append(hud.l1, hud.l2, hud.l3, hud.l4);
   for (let i = 0; i < 20; i++) hud.bar.append(h("i"));
   const cls = (el, c, on) => { if (el.classList) el.classList.toggle(c, on); else el.className = (el.className || "").split(" ").filter(x => x && x !== c).concat(on ? [c] : []).join(" "); };
-  function renderHud() {
+  const calm = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);   // 減少動態：不設 inline 延遲
+  const has = (el, c) => String((el && el.className) || "").split(" ").includes(c);
+  const put = (el, t) => { if (el.textContent !== t) el.textContent = t; };   // 字沒變就不碰 DOM（輪詢重畫不閃）
+  const onceAnim = (el, c) => { cls(el, c, false); void el.offsetWidth; cls(el, c, true); };   // 學員自己按的時候才播一次；播完 animationend 會拿掉 class
+  const animEnd = (el, c) => { el.addEventListener("animationend", e => { if (!e || e.target === el) cls(el, c, false); }); return el; };
+  Array.from(hud.bar.children).forEach(x => animEnd(x, "fill"));
+  function renderHud(user) {   // user＝學員自己在這頁按的（交件）：才播經驗條、小人、小格子的動畫；輪詢／別的分頁更新不播
     const p = LU.progress(st), L = LU.LEVELS[p.lv - 1], on = LU.segments(p.ratio);
-    hud.crest.textContent = `Lv.${p.lv} ${L.name}`;
+    put(hud.crest, `Lv.${p.lv} ${L.name}`);
     if (hud.lv !== p.lv) { hud.lv = p.lv; hud.pix.replaceChildren(AVATAR.el(p.lv, 48)); }
-    Array.from(hud.bar.children).forEach((x, i) => cls(x, "on", i < on));
+    let k = 0;
+    const still = calm();
+    Array.from(hud.bar.children).forEach((x, i) => { if (user && i < on && !has(x, "on")) { if (!still) x.style.animationDelay = (k++ * 40) + "ms"; onceAnim(x, "fill"); } cls(x, "on", i < on); });
+    renderHero(p.lv, user);
     const pct = Math.round(p.ratio * 100);
     hud.l2.textContent = "（經驗值）"; hud.l3.textContent = `${pct}%`;   // 手機上只留「EXP 30%」，後面兩段用 CSS 藏起來
     hud.l4.textContent = p.next ? `　再完成幾件就升到 Lv.${p.next}` : "　今天的目標達成：Lv.4 專員";
     hud.bar.setAttribute("aria-label", hud.label.textContent);
     hud.no.textContent = st.player ? `${st.player} 號｜${BLOCKS.tableName(st.team)}` : (st.team ? "網路不太穩，先開始玩，編號稍後補上" : "");
-    renderMenu();
+    renderMenu(user);
   }
   // ── 升級畫面：只播一次，按繼續才關（Esc 也可關；開著時背景 inert） ──
   let openUps = 0;
@@ -149,25 +158,114 @@
   // ── 目錄＋一關一頁（T7，比照宴會廳）：九關的 DOM 只建一次，換頁只切 hidden，打到一半的字不會不見；位置記在網址 #s1 ──
   const IDS = STAGES.map(s => s.id), menu = { el: null, h2: null, rows: {} };
   const tasksOf = id => LU.TASKS.filter(x => x.id.split(".")[0] === id);
+  // ── 目錄方向 C（T8）：角色卡＋七套造型衣櫃＋每關徽章＋小格子。節點只建一次，之後只改字和 class；資料沒變就不碰 DOM ──
+  const UP = { s1: 2, s2: 3, s4: 4 };   // 做完這關換上哪一套（照 core.js MILESTONES：需求單、專員 Gem、考過 4 題）
+  const HOW = { 1: "第 1 關交完需求單就換上", 2: "第 2 關建好專員 Gem 就換上", 3: "第 4 關考過 4 題就換上" };
+  const NS = "http://www.w3.org/2000/svg";
+  const ICON = {   // 固定的小圖示（不吃使用者輸入），用 createElementNS 畫
+    pin: ["none", "2.2", [["path", { d: "M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z" }], ["circle", { cx: 12, cy: 10, r: 2.2 }]]],
+    play: ["currentColor", "", [["path", { d: "M8 5.5v13l10.5-6.5z" }]]],
+    flag: ["none", "2.2", [["path", { d: "M5 21V4M5 4h11l-2 4 2 4H5" }]]],
+    eye: ["none", "2", [["path", { d: "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" }], ["circle", { cx: 12, cy: 12, r: 3 }]]],
+    check: ["none", "3.2", [["path", { d: "M5 12.5l4.5 4.5L19 7.5" }]]]
+  };
+  function icon(k, w) {
+    const [fill, sw, parts] = ICON[k], s = document.createElementNS(NS, "svg");
+    [["viewBox", "0 0 24 24"], ["width", w], ["height", w], ["fill", fill], ["aria-hidden", "true"]].forEach(([a, v]) => s.setAttribute(a, v));
+    if (sw) [["stroke", "currentColor"], ["stroke-width", sw], ["stroke-linecap", "round"], ["stroke-linejoin", "round"]].forEach(([a, v]) => s.setAttribute(a, v));
+    parts.forEach(([t, a]) => { const e = document.createElementNS(NS, t); Object.keys(a).forEach(x => e.setAttribute(x, a[x])); s.append(e); });
+    return s;
+  }
+  const avImg = (lv, c) => { const i = h("img", { class: c || "", alt: "" }); i.src = `img/avatar-lv${lv}.png`; return i; };
+  const emblemOf = s => s.id === "s0" ? icon("pin", 24) : s.id === "open" ? icon("play", 24) : s.id === "end" ? icon("flag", 24) : s.demo ? icon("eye", 26) : s.id.slice(1);
+  const pipsOf = n => h("span", { class: "pips", "aria-hidden": "true" }, Array.from({ length: n }, () => animEnd(h("i"), "pop")));
+  function setPips(el, n, user) { Array.from(el.children).forEach((p, j) => { const on = j < n; if (user && on && !has(p, "on")) onceAnim(p, "pop"); cls(p, "on", on); }); }
+  const hero = { img: null, lv: h("b"), name: h("span"), desc: h("p", { class: "hero-desc" }), next: h("p", { class: "hero-next" }), closet: [], shown: 0 };
   function buildMenu() {
     menu.h2 = h("h2", { tabindex: "-1" }, "闖關目錄");
-    const list = h("ol", { class: "menu-list" }, STAGES.map(s => {
-      const cnt = h("span", { class: "mr-cnt" }), now = h("span", { class: "mr-now" }, "講師進行中"), row = h("button", { class: "menu-row" + (s.demo ? " demo" : ""), "data-stage": s.id, onclick: () => go(s.id) },
-        h("span", { class: "mr-no" }, /^s[1-6]$/.test(s.id) ? stageLabel(s.id) : ""), h("span", { class: "mr-name" }, s.title, h("small", {}, `${s.time}｜PPT ${s.ppt}`)), h("span", { class: "mr-st" }, now, cnt));
-      now.hidden = true; menu.rows[s.id] = { row, cnt, now };
-      return h("li", {}, row);
+    hero.img = animEnd(avImg(LU.level(st)), "pose");   // 直接用目前等級的圖，不先抓一張 Lv.1
+    const heroEl = h("div", { class: "hero" }, h("div", { class: "hero-art" }, hero.img),
+      h("div", { class: "hero-info" }, h("p", { class: "hero-k" }, "你的 AI 助理"), h("p", { class: "hero-lv" }, hero.lv, hero.name), hero.desc), hero.next);
+    const closet = h("ol", { class: "closet", "aria-label": "七套造型：已拿到、現在、還沒到、講師示範" }, LU.LEVELS.map(L => {
+      const img = avImg(L.lv); img.alt = `Lv.${L.lv} ${L.name}`;
+      const li = h("li", { style: `--i:${L.lv - 1}` }, img, h("span", { class: "cl-lv" }, h("span", { class: "cl-pre" }, "Lv."), String(L.lv)),
+        L.lv >= 5 ? h("span", { class: "cl-eye" }, icon("eye", 16)) : h("span", { class: "cl-ok" }, icon("check", 12)));
+      hero.closet.push({ li, img }); return li;
+    }));
+    const list = h("ol", { class: "menu-list" }, STAGES.map((s, k) => {
+      const ts = tasksOf(s.id), cnt = h("span", { class: "mr-cnt" }), now = h("span", { class: "mr-now" }, "講師進行中"), pips = pipsOf(ts.length), up = UP[s.id];
+      const rimg = up ? avImg(up, "sil") : null, reward = up ? h("span", { class: "q-reward" }, rimg, "→ ", h("b", {}, `Lv.${up} ${LU.LEVELS[up - 1].name}`)) : "";
+      const row = h("button", { class: "menu-row" + (s.demo ? " demo" : ""), "data-stage": s.id, onclick: () => go(s.id) },
+        h("span", { class: "emblem", "aria-hidden": "true" }, emblemOf(s), h("span", { class: "em-ok" }, icon("check", 13))),
+        h("span", { class: "q-main" }, h("span", { class: "mr-no" }, /^s[1-6]$/.test(s.id) ? stageLabel(s.id) : ""), h("span", { class: "mr-name" }, s.title), h("small", {}, `${s.time}｜PPT ${s.ppt}`), reward),
+        h("span", { class: "mr-st" }, now, cnt, pips));
+      now.hidden = true; menu.rows[s.id] = { row, cnt, now, pips, reward: reward || null, rimg };
+      return h("li", { style: `--i:${k + 7}` }, row);
     }));
     const link = (STAGES.find(s => s.id === "end") || { blocks: [] }).blocks.find(b => b.type === "link");   // 附錄：跟收尾關同一個網址
-    menu.el = h("section", { class: "stage menu", id: "menu" }, h("p", { class: "step-no" }, "點一關進去；講師上到哪一關會標「講師進行中」，你可以自由切換"), menu.h2, list, link ? R.link(link) : "");
+    menu.el = h("section", { class: "stage menu intro", id: "menu" }, heroEl, closet, h("p", { class: "step-no" }, "點一關進去；講師上到哪一關會標「講師進行中」，你可以自由切換"), menu.h2, list, link ? R.link(link) : "");
     return menu.el;
   }
-  function renderMenu() {   // 已做幾件／共幾件、全做完打勾、講師正在上的那關
-    const done = st.done || {};
-    STAGES.forEach(s => {
-      const r = menu.rows[s.id]; if (!r) return;
-      const ts = tasksOf(s.id), n = ts.filter(x => done[x.id]).length, full = ts.length > 0 && n === ts.length;
-      r.cnt.textContent = `${full ? "✓ " : ""}${n}／${ts.length} 件`; cls(r.row, "full", full); r.now.hidden = lastStage !== s.id;
+  // ── 關卡頁頂端（T9）：關號時間 PPT、標題、這關已交 N／M 件＋小格子；會升級的關右邊放「這關解鎖」剪影；底下九個點的小路線（點了就跳關）──
+  const heads = {};
+  function stageHead(s, h2) {
+    const ts = tasksOf(s.id), cnt = h("b"), pips = pipsOf(ts.length), up = UP[s.id], here = IDS.indexOf(s.id);
+    const left = h("div", { class: "qh-main" }, h("p", { class: "step-no" }, `${stageLabel(s.id)}｜${s.time}｜PPT ${s.ppt}`), h2,
+      ts.length ? h("p", { class: "qh-cnt" }, "這關已交 ", cnt, " 件 ", pips) : "");
+    let reward = null, rk = null, rimg = null;
+    if (up) {
+      const L = LU.LEVELS[up - 1]; rimg = avImg(up, "sil"); rk = h("span", { class: "rw-k" }, "這關解鎖");
+      reward = h("figure", { class: "reward" }, h("div", { class: "rw-art" }, rimg), h("figcaption", {}, rk, h("b", {}, `Lv.${up} ${L.name}`), h("span", { class: "rw-d" }, L.desc)));
+      reward.addEventListener("animationend", () => cls(reward, "burst", false));   // 光環播完就收掉，切頁回來不重播
+    }
+    const minis = STAGES.map((t, k) => {
+      const btn = h("button", { type: "button", class: "mini-dot", onclick: () => go(t.id) }, h("i"));
+      if (k === here) btn.setAttribute("aria-current", "step");
+      return h("li", { class: [t.demo ? "demo" : "", k < here ? "walked" : "", k === here ? "here" : ""].filter(Boolean).join(" ") }, btn);
     });
+    heads[s.id] = { cnt, pips, reward, rk, rimg, up, minis };
+    return h("header", { class: "qhead" + (up ? "" : " no-reward") }, left, reward || "", h("ol", { class: "mini", "aria-label": `九關路線，這是第 ${here + 1} 站` }, minis));
+  }
+  function renderHeads(full, user) {   // full[k]＝第 k 關做完了沒；只改 class 和不一樣的字
+    STAGES.forEach(s => {
+      const hd = heads[s.id]; if (!hd) return;
+      hd.minis.forEach((li, k) => {
+        cls(li, "done", full[k]);
+        const t = STAGES[k], btn = li.children[0], label = `${stageLabel(t.id) || t.title}｜${t.title}${full[k] ? "（做完了）" : ""}${t.id === s.id ? "（你在這）" : ""}`;
+        if (btn.getAttribute ? btn.getAttribute("aria-label") !== label : (btn.attrs || {})["aria-label"] !== label) btn.setAttribute("aria-label", label);
+      });
+    });
+  }
+  function renderHero(lv, user) {   // 等級沒變就整段跳過（小人圖不重新載入）
+    if (!menu.el || hero.shown === lv) return;
+    hero.shown = lv;
+    const L = LU.LEVELS[lv - 1], nx = lv + 1;
+    if (hero.img.src !== `img/avatar-lv${lv}.png` && !String(hero.img.src).endsWith(`/img/avatar-lv${lv}.png`)) hero.img.src = `img/avatar-lv${lv}.png`;
+    hero.img.alt = `你的 AI 助理現在的樣子：Lv.${lv} ${L.name}`;
+    if (user) onceAnim(hero.img, "pose");   // 自己交件升級那一下才跳
+    put(hero.lv, `Lv.${lv}`); put(hero.name, L.name); put(hero.desc, L.desc);
+    hero.next.replaceChildren(...(nx <= 4 ? [avImg(nx, "sil"), h("span", {}, "下一套造型：", h("b", {}, `Lv.${nx} ${LU.LEVELS[nx - 1].name}`), `（${HOW[lv]}）`)] : [h("span", {}, "今天的目標達成：", h("b", {}, "Lv.4 專員"))]));
+    hero.closet.forEach(({ li, img }, k) => { const l = k + 1, lock = l > lv && l < 5; li.className = l >= 5 ? "demo" : l < lv ? "got" : l === lv ? "got cur" : "lock"; img.className = lock ? "sil" : ""; img.alt = `Lv.${l} ${LU.LEVELS[k].name}${lock ? "（還沒拿到）" : ""}`; });
+    STAGES.forEach(s => { const r = menu.rows[s.id]; if (r && r.reward) { cls(r.reward, "got", lv >= UP[s.id]); cls(r.rimg, "sil", lv < UP[s.id]); } });
+    Object.keys(heads).forEach(id => {   // 關卡頁的「這關解鎖」：拿到就變彩色、實線、「已解鎖」；自己交件升級那一下光環擴散一次
+      const hd = heads[id]; if (!hd.reward) return;
+      const got = lv >= hd.up, was = has(hd.reward, "unlocked");
+      cls(hd.reward, "unlocked", got); cls(hd.rimg, "sil", !got); put(hd.rk, got ? "已解鎖" : "這關解鎖");
+      if (user && got && !was) onceAnim(hd.reward, "burst");
+    });
+  }
+  function renderMenu(user) {   // 已做幾件／共幾件、小格子、全做完打勾、講師正在上的那關；資料沒變就不寫 DOM
+    const done = st.done || {}, fulls = [];
+    STAGES.forEach(s => {
+      const ts = tasksOf(s.id), n = ts.filter(x => done[x.id]).length, full = ts.length > 0 && n === ts.length, now = lastStage === s.id;
+      fulls.push(full);
+      const hd = heads[s.id]; if (hd) { put(hd.cnt, `${n}／${ts.length}`); setPips(hd.pips, n, user); }
+      const r = menu.rows[s.id]; if (!r) return;
+      put(r.cnt, `${full ? "✓ " : ""}${n}／${ts.length} 件`); cls(r.row, "full", full); cls(r.row, "now", now);
+      if (r.now.hidden !== !now) r.now.hidden = !now;
+      setPips(r.pips, n, user);
+    });
+    renderHeads(fulls, user);
   }
   const pager = { back: h("button", { class: "btn", onclick: () => go("menu") }, "← 目錄"), prev: h("button", { class: "btn", onclick: () => step(-1) }, "上一關"), next: h("button", { class: "btn primary", onclick: () => step(1) }, "下一關 →") };
   pager.el = h("nav", { class: "pager", "aria-label": "換關" }, pager.back, pager.prev, pager.next);
@@ -177,6 +275,7 @@
   function route(user) {   // user＝按鈕換頁或瀏覽器上一頁：才捲到頂、才搬焦點（第一次載入保留瀏覽器自己的捲動位置）
     if (!menu.el) return;
     const id = here(), i = IDS.indexOf(id);
+    if (id !== "menu") cls(menu.el, "intro", false);   // 進場動畫只在目錄第一次出現時播；離開後回來不重播
     menu.el.hidden = id !== "menu"; IDS.forEach(k => { if (stageEls[k]) stageEls[k].hidden = k !== id; });
     pager.el.hidden = id === "menu"; pager.prev.hidden = i <= 0; pager.next.hidden = i < 0 || i >= IDS.length - 1;
     if (id === view) return;
@@ -196,8 +295,7 @@
     root.replaceChildren(banner(), sync.bar, h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)), buildMenu());
     STAGES.forEach(s => {   // 報到那一關交件後也留著，可以改、可以再交
       const h2 = h("h2", { tabindex: "-1" }, s.title); stageH2[s.id] = h2;
-      const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id },
-        h("p", { class: "step-no" }, `${stageLabel(s.id)}｜${s.time}｜PPT ${s.ppt}`), h2, s.blocks.map(renderBlock), askBtn(s));
+      const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id }, stageHead(s, h2), s.blocks.map(renderBlock), askBtn(s));
       const demo = s.blocks.find(b => b.type === "demo"), wraps = [];
       walk(el, "pixel-wrap", w => wraps.push(w));
       if (demo) wraps.forEach((w, i) => { if (demo.cards[i]) w.append(AVATAR.el(demo.cards[i].lv, 64)); });

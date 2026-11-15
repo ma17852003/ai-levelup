@@ -48,6 +48,104 @@
     else { el.setAttribute("x", "1"); el.setAttribute("y", "1"); el.setAttribute("width", "10"); el.setAttribute("height", "10"); }
     el.setAttribute("fill", "currentColor"); svg.append(el); return svg;
   }
+  const calm = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);   // 減少動態：不設 inline 延遲
+  // ── 集換卡（T10）：卡片和存出來的圖用同一份資料（cardData），內容一定一致 ──
+  function cardData(st) {
+    const L = window.LU, c = st.claim || {}, s = c.score || {}, lv = L.level(st), M = L.SCORE_MAX, n = v => Number(v) || 0;
+    const T = L.TITLES.find(x => x.id === c.main) || { name: "" }, dt = new Date(), p2 = x => String(x).padStart(2, "0");
+    return { lv, lvText: `Lv.${lv} ${L.LEVELS[lv - 1].name}`, name: `【${T.name}】`, why: String(c.why || ""), total: n(s.total),
+      stats: [["經驗值", n(s.xp), M.xp, true], ["手速", n(s.speed), M.speed], ["答對", n(s.correct), M.correct], ["成長", n(s.growth), M.growth], ["團隊", n(s.team), M.team]],
+      no: st.player ? `No.${st.player}` : "No.—", foot: [st.team ? tableName(st.team) : "", `${dt.getFullYear()}-${p2(dt.getMonth() + 1)}-${p2(dt.getDate())}`].filter(Boolean).join("｜") };
+  }
+  // 電腦上滑鼠移到卡上：跟著微微傾斜反光（使用者自己的動作）；手機、減少動態時不做
+  function tilt(flip, card) {
+    const mm = window.matchMedia;
+    if (!mm || !mm("(hover: hover) and (pointer: fine)").matches || mm("(prefers-reduced-motion: reduce)").matches) return;
+    const set = (el, k, v) => el.style.setProperty(k, v);
+    flip.addEventListener("pointermove", e => {
+      if (!String(flip.className).split(" ").includes("open")) return;
+      const r = flip.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+      set(flip, "--ry", (x * 10).toFixed(2) + "deg"); set(flip, "--rx", (-y * 8).toFixed(2) + "deg"); set(card, "--sx", (120 - (x + 0.5) * 140).toFixed(1) + "%"); set(card, "--so", "1");
+    });
+    flip.addEventListener("pointerleave", () => { set(flip, "--ry", "0deg"); set(flip, "--rx", "0deg"); set(card, "--so", "0"); });
+  }
+  function loadImg(src) {   // 等小人圖真的載入完才畫（decode；舊瀏覽器用 onload）；載不到就不畫小人
+    return new Promise(res => {
+      const i = document.createElement("img"), ok = () => res(i), bad = () => res(null);
+      if (i.decode) { i.src = src; i.decode().then(ok, bad); } else { i.onload = ok; i.onerror = bad; i.src = src; }
+    });
+  }
+  // 用 Canvas 2D 自己畫一張集換卡（800 寬＝卡片 400px 的兩倍）。顏色、字型讀 theme.css 的變數，讀不到才用同樣的值
+  function drawCard(cv, d, img) {
+    const css = k => { try { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); } catch (e) { return ""; } };
+    const C = { bg: css("--bg") || "#12162A", deep: css("--bg-deep") || "#0D1022", panel: css("--panel") || "#1C2242", panel2: css("--panel-2") || "#252C55",
+      fg: css("--fg") || "#EEF0F7", dim: css("--fg-dim") || "#A6ACC8", line: css("--line-strong") || "#7D84A8", gold: css("--gold") || "#F4B740", onGold: css("--on-gold") || "#2A1F05" };
+    const sans = css("--font-sans") || "sans-serif", mono = css("--font-mono") || "monospace";
+    const c = cv.getContext("2d"), W = 800;
+    const fit = (text, weight, size, fam, maxW, min) => { let z = size; c.font = `${weight} ${z}px ${fam}`; while (z > min && c.measureText(text).width > maxW) { z -= 2; c.font = `${weight} ${z}px ${fam}`; } return z; };
+    const wrap = (text, maxW) => { const out = []; let line = ""; Array.from(text).forEach(ch => { if (line && c.measureText(line + ch).width > maxW) { out.push(line); line = ch; } else line += ch; }); if (line) out.push(line); return out; };
+    c.font = `400 32px ${sans}`; const why = wrap(d.why, 700);
+    const statsY = 672 + why.length * 48 + 20, footY = statsY + d.stats.length * 56 + 14, H = footY + 120;
+    cv.width = W; cv.height = H;   // 設寬高會清空畫布，所以先量好再設
+    const rr = (x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+    const text = (t, x, y, font, color, align) => { c.font = font; c.fillStyle = color; c.textAlign = align || "left"; c.fillText(t, x, y); };
+    c.fillStyle = C.bg; c.fillRect(0, 0, W, H);
+    rr(3, 3, W - 6, H - 6, 36); c.fillStyle = C.panel2; c.fill(); c.lineWidth = 6; c.strokeStyle = C.fg; c.stroke();
+    rr(14, 14, W - 28, H - 28, 26); c.lineWidth = 2; c.strokeStyle = C.line; c.stroke();
+    text("AI 升級之路｜結業卡", 40, 64, `700 28px ${mono}, ${sans}`, C.dim); text(d.no, W - 40, 64, `700 28px ${mono}`, C.dim, "right");
+    // 展示窗：深藍底＋放射光＋腳下影子＋小人＋金色等級牌
+    rr(28, 88, W - 56, 440, 24); const g = c.createRadialGradient(W / 2, 352, 20, W / 2, 352, 420); g.addColorStop(0, C.panel2); g.addColorStop(1, C.deep);
+    c.fillStyle = g; c.fill();
+    c.save(); c.clip(); c.fillStyle = "rgba(238, 240, 247, .07)";   // 放射光：跟網頁 .tc-art 一樣，每 16 度畫一片 8 度的淡光
+    for (let a = 0; a < 360; a += 16) { c.beginPath(); c.moveTo(W / 2, 361); c.arc(W / 2, 361, 640, a * Math.PI / 180, (a + 8) * Math.PI / 180); c.closePath(); c.fill(); }
+    c.restore(); rr(28, 88, W - 56, 440, 24); c.lineWidth = 2; c.strokeStyle = C.line; c.stroke();
+    c.save(); c.globalAlpha = .55; c.fillStyle = "black"; c.beginPath(); c.ellipse(W / 2, 500, 150, 22, 0, 0, Math.PI * 2); c.fill(); c.restore();
+    if (img) { const ih = 392, iw = ih * (img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 0.8); c.drawImage(img, (W - iw) / 2, 508 - ih, iw, ih); }
+    c.font = `800 32px ${mono}, ${sans}`; const tw = c.measureText(d.lvText).width; rr(44, 104, tw + 28, 50, 14); c.fillStyle = C.gold; c.fill(); text(d.lvText, 58, 140, `800 32px ${mono}, ${sans}`, C.onGold);
+    // 名牌（壓在展示窗下緣）
+    rr(56, 476, W - 112, 150, 20); c.fillStyle = C.panel; c.fill(); c.lineWidth = 4; c.strokeStyle = C.fg; c.stroke();
+    text("你的結業稱號", W / 2, 520, `700 28px ${mono}, ${sans}`, C.dim, "center");
+    const nz = fit(d.name, 700, 56, sans, W - 160, 28); text(d.name, W / 2, 592, `700 ${nz}px ${sans}`, C.fg, "center");
+    why.forEach((l, i) => text(l, W / 2, 680 + i * 48, `400 32px ${sans}`, C.fg, "center"));
+    // 能力值長條（經驗值金色，其他白色；滿格＝各項上限）
+    d.stats.forEach(([k, v, max, xp], i) => {
+      const y = statsY + i * 56;
+      text(k, 48, y + 28, `400 30px ${sans}`, C.dim);
+      rr(176, y + 6, 470, 22, 11); c.fillStyle = C.deep; c.fill();
+      const w = Math.max(0, Math.min(1, v / max)) * 470; if (w > 0) { rr(176, y + 6, Math.max(w, 22), 22, 11); c.fillStyle = xp ? C.gold : C.fg; c.fill(); }
+      text(String(v), W - 48, y + 32, `800 36px ${mono}`, C.fg, "right");
+    });
+    c.save(); c.setLineDash([10, 8]); c.lineWidth = 2; c.strokeStyle = C.line; c.beginPath(); c.moveTo(48, footY); c.lineTo(W - 48, footY); c.stroke(); c.restore();
+    text("總積分", 48, footY + 74, `400 32px ${sans}`, C.dim); text(String(d.total), 176, footY + 86, `800 88px ${mono}`, C.fg); text(d.foot, W - 48, footY + 74, `400 28px ${sans}`, C.dim, "right");
+  }
+  const isIOS = () => { const n = window.navigator || {}; return /iP(hone|od|ad)/.test(n.userAgent || "") || (n.platform === "MacIntel" && n.maxTouchPoints > 1); };
+  let shownUrl = null;   // 放在卡片下面那張圖的網址：留到下一次按才收回
+  // 存成圖片：一律先把圖放在卡片下面＋「長按這張圖存起來」；電腦（有 download、不是 iPhone）同時觸發 a[download]。
+  // 不開新分頁：LINE／FB 內建瀏覽器有 download 屬性卻存不了 blob（會假成功），iPhone 新分頁會空白
+  async function saveCard(d, msg, box) {
+    const a = document.createElement("a"), canDl = !isIOS() && "download" in a, U = window.URL;
+    msg.className = ""; msg.textContent = "產生圖片中…";
+    let cv, blob = null, view = "";
+    try {
+      const img = await loadImg(`img/avatar-lv${d.lv}.png`);
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;   // 中文字型跟頁面同一套，等它載好
+      cv = document.createElement("canvas"); drawCard(cv, d, img);
+      blob = await new Promise(r => (cv.toBlob ? cv.toBlob(r, "image/png") : r(null)));
+      if (!(blob && U && U.createObjectURL)) { blob = null; view = cv.toDataURL("image/png"); }
+    } catch (e) {
+      box.replaceChildren(); msg.className = "bad-msg"; msg.textContent = "這台瀏覽器做不出圖片，請直接截圖"; return;
+    }
+    if (blob) { if (shownUrl && U.revokeObjectURL) U.revokeObjectURL(shownUrl); shownUrl = view = U.createObjectURL(blob); }
+    const im = h("img", { alt: "結業卡（長按或右鍵存起來）" }); im.src = view;
+    box.replaceChildren(h("p", { class: "step-no" }, "長按這張圖存起來（電腦可按右鍵另存）"), im);
+    if (canDl) {
+      const dl = blob ? U.createObjectURL(blob) : view;
+      a.href = dl; a.download = `AI升級之路-結業卡-${d.no.replace(/[^\w]/g, "")}.png`;
+      document.body.append(a); a.click(); a.remove();
+      if (blob && U.revokeObjectURL) setTimeout(() => U.revokeObjectURL(dl), 10000);   // 下載用的網址 10 秒後收回
+      msg.className = "ok-msg"; msg.textContent = "已開始下載；沒看到的話，長按或右鍵下面這張圖存起來";
+    } else { msg.className = "ok-msg"; msg.textContent = "長按下面這張圖存起來"; }
+  }
   const R = {
     copy(b, ctx) {
       const get = () => {
@@ -235,7 +333,7 @@
         }) }), "存計畫"), msg),
         actions(h("a", { class: "btn primary", href: "takeaway.html?s=" + encodeURIComponent(window.LU_CFG.session), target: "_blank", rel: "noopener" }, "產生我的設計單（可列印）")));
     },
-    title(b, ctx) {   // 收尾關：領取結業稱號。領了才揭曉積分；存在 st.claim，重新整理還在，按「重新計算」才更新
+    title(b, ctx) {   // 收尾關：領取結業稱號（T10 集換卡）。領了才揭曉；第一次背面朝上，按「翻開我的卡」才翻；存在 st.claim／st.cardSeen，重新整理還在，按「重新計算」才更新
       const L = window.LU, wrap = h("div", { class: "block", "aria-live": "polite" });
       const name = id => ((L.TITLES.find(x => x.id === id) || {}).name || "");
       let again = null;
@@ -247,14 +345,35 @@
             actions(h("button", { class: "btn primary", onclick: e => press(e.currentTarget, claim) }, "領取我的稱號")));
           return;
         }
-        const s = c.score || {}, n = v => String(Number(v) || 0), also = (c.also || []).map(name).filter(Boolean);
+        const d = cardData(ctx.st()), also = (c.also || []).map(name).filter(Boolean), seen = !!ctx.st().cardSeen;
+        const flipBtn = h("button", { class: "btn primary", type: "button" }, "翻開我的卡");
+        const back = h("div", { class: "tface tback" }, h("span", { class: "q", "aria-hidden": "true" }, "?"), h("p", {}, "AI 升級之路｜結業卡"), flipBtn);
+        const art = h("img", { alt: `${d.lvText} 的造型` }); art.src = `img/avatar-lv${d.lv}.png`;
+        const stats = h("dl", { class: "tc-stats" }, d.stats.map(([k, v, max, xp], i) => {
+          const bar = h("i"); bar.style.width = Math.min(100, Math.round(v / max * 100)) + "%"; if (!calm()) bar.style.animationDelay = (900 + i * 80) + "ms";
+          return [h("dt", {}, k), h("dd", {}, h("div", { class: "bar" + (xp ? " xp" : "") }, bar)), h("dd", { class: "v" }, String(v))];
+        }).flat());
+        const card = h("article", { class: "tface tcard", "aria-label": "結業卡", tabindex: "-1" },
+          h("header", { class: "tc-top" }, h("span", {}, "AI 升級之路｜結業卡"), h("span", {}, d.no)),
+          h("div", { class: "tc-art" }, art, h("span", { class: "tc-lvtag" }, d.lvText)),
+          h("div", { class: "tc-plate" }, h("p", { class: "tc-kicker" }, "你的結業稱號"), h("h3", { class: "tc-name" }, d.name)),
+          h("p", { class: "tc-why" }, d.why), stats,
+          h("footer", { class: "tc-foot" }, h("span", {}, "總積分"), h("strong", {}, String(d.total)), h("span", {}, d.foot)));
+        const inner = h("div", { class: "tflip-in" }, back, card), flip = h("div", { class: "tflip" + (seen ? " open" : "") }, inner);
+        let outer = null;
+        const faces = () => { const open = String(flip.className).split(" ").includes("open"); if (outer) outer.className = "title-card" + (open ? "" : " closed"); back.inert = open; card.inert = !open; back.setAttribute("aria-hidden", String(open)); card.setAttribute("aria-hidden", String(!open)); };
+        faces();
+        flipBtn.addEventListener("click", () => { ctx.set({ cardSeen: true }); flip.className = "tflip open reveal"; faces(); if (card.focus) card.focus({ preventScroll: true }); });   // 翻開後焦點交給卡片（背面的按鈕已經藏起來）   // 只有這一下播翻面＋反光＋長條長出來
+        flip.addEventListener("animationend", e => { if (e && e.animationName === "sheen") flip.className = String(flip.className).split(" ").filter(x => x !== "reveal").join(" "); });
+        tilt(flip, card);
+        const msg = h("span", { "aria-live": "polite" }), saveBox = h("div", { class: "tc-save" });
+        const saveBtn = h("button", { class: "btn", type: "button" }, "存成圖片");
+        saveBtn.addEventListener("click", () => saveCard(cardData(ctx.st()), msg, saveBox));
         again = h("button", { class: "btn", onclick: () => { claim(); flash(again, "✓ 已重新計算", 3000); } }, "重新計算");   // claim 會重畫卡片，閃的是新的那顆
-        wrap.replaceChildren(h("div", { class: "title-card" },
-          h("p", { class: "tc-kicker" }, "你的結業稱號"), h("h3", { class: "tc-name" }, `【${name(c.main)}】`), h("p", { class: "tc-why" }, c.why || ""),
-          h("p", { class: "tc-score" }, h("span", {}, "總積分"), h("strong", {}, n(s.total))),
-          h("ul", { class: "tc-parts" }, [["經驗值", s.xp], ["手速", s.speed], ["答對", s.correct], ["成長", s.growth], ["團隊", s.team]].map(([k, v]) => h("li", {}, h("span", {}, k), h("b", {}, n(v))))),
+        outer = h("div", { class: "title-card" }, h("div", { class: "tc-stage" }, flip),
           also.length ? h("p", { class: "tc-also" }, "也符合：" + also.join("、")) : "",
-          actions(again, h("a", { class: "btn primary", href: "takeaway.html?s=" + encodeURIComponent(window.LU_CFG.session), target: "_blank", rel: "noopener" }, "存到設計單"))));
+          actions(again, saveBtn, h("a", { class: "btn primary", href: "takeaway.html?s=" + encodeURIComponent(window.LU_CFG.session), target: "_blank", rel: "noopener" }, "存到設計單"), msg), saveBox);
+        faces(); wrap.replaceChildren(outer);
       }
       show();
       return wrap;
@@ -268,5 +387,5 @@
         c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: e => { ctx.done(b.id); flash(e.currentTarget, "✓ 已打開", 3000); } }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
     }
   };
-  window.BLOCKS = { h, R, textOf, flash, press, tableName, geminiLink };
+  window.BLOCKS = { h, R, textOf, flash, press, tableName, geminiLink, cardData, drawCard };
 })();
