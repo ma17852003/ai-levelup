@@ -7,16 +7,19 @@
     { lv: 7, name: "部門主管", desc: "帶一整個 AI 部門" }
   ];
   // 任務：lv＝算在「升到第幾級」那一組；0＝不算經驗值（只拿成就）。每組加總 100（有測試）
+  // *.learn＝那一關的上課卡上完（2026-11-16 James：每關 +5，從同級最大那件扣；s5 不給；s6、收尾是選看，沒有任務）
   const TASKS = [
-    { id: "s0.first", lv: 2, xp: 10 }, { id: "open.self", lv: 2, xp: 10 }, { id: "open.agent", lv: 2, xp: 10 },
-    { id: "s1.guess", lv: 2, xp: 10 }, { id: "s1.copy", lv: 2, xp: 10 }, { id: "s1.brief", lv: 2, xp: 50 },
-    { id: "s1.instr", lv: 3, xp: 20 }, { id: "s2.sort", lv: 3, xp: 20 }, { id: "s2.gem", lv: 3, xp: 40 },
+    { id: "s0.learn", lv: 2, xp: 5 }, { id: "s0.first", lv: 2, xp: 10 }, { id: "open.learn", lv: 2, xp: 5 }, { id: "open.self", lv: 2, xp: 10 }, { id: "open.agent", lv: 2, xp: 10 },
+    { id: "s1.learn", lv: 2, xp: 5 }, { id: "s1.guess", lv: 2, xp: 10 }, { id: "s1.copy", lv: 2, xp: 10 }, { id: "s1.brief", lv: 2, xp: 35 },
+    { id: "s1.instr", lv: 3, xp: 20 }, { id: "s2.learn", lv: 3, xp: 5 }, { id: "s2.sort", lv: 3, xp: 20 }, { id: "s2.gem", lv: 3, xp: 35 },
     { id: "s2.reviewer", lv: 3, xp: 10 }, { id: "s2.call", lv: 3, xp: 10 },
-    { id: "s3.guess", lv: 4, xp: 10 }, { id: "s3.toc", lv: 4, xp: 20 }, { id: "s4.break", lv: 4, xp: 10 },
-    { id: "s4.light", lv: 4, xp: 10 }, { id: "s4.write", lv: 4, xp: 20 }, { id: "s4.pass", lv: 4, xp: 30 },
-    { id: "s5.relay", lv: 0, xp: 0 }, { id: "s5.caught", lv: 0, xp: 0 }, { id: "s5.team", lv: 0, xp: 0 }, { id: "s5.card", lv: 0, xp: 0 },
+    { id: "s3.learn", lv: 4, xp: 5 }, { id: "s3.guess", lv: 4, xp: 10 }, { id: "s3.toc", lv: 4, xp: 20 }, { id: "s4.learn", lv: 4, xp: 5 }, { id: "s4.break", lv: 4, xp: 10 },
+    { id: "s4.light", lv: 4, xp: 10 }, { id: "s4.write", lv: 4, xp: 20 }, { id: "s4.pass", lv: 4, xp: 20 },
+    { id: "s5.learn", lv: 0, xp: 0 }, { id: "s5.relay", lv: 0, xp: 0 }, { id: "s5.caught", lv: 0, xp: 0 }, { id: "s5.team", lv: 0, xp: 0 }, { id: "s5.card", lv: 0, xp: 0 },
     { id: "s6.demo", lv: 0, xp: 0 }, { id: "end.self", lv: 0, xp: 0 }, { id: "end.vote", lv: 0, xp: 0 }, { id: "end.plan", lv: 0, xp: 0 }
   ];
+  const isLearn = id => /\.learn$/.test(id);
+  const WORK = TASKS.filter(x => !isLearn(x.id));   // 作答任務（25 件）：手速、偷跑、壓線、中位數、全勤、宇宙最速只算這些
   const MILESTONES = [
     { lv: 2, ok: st => !!st.done["s1.brief"] },
     { lv: 3, ok: st => !!st.done["s2.gem"] },
@@ -92,7 +95,7 @@
     const curAt = t => { let c = null; log.forEach(e => { if (e[0] <= t) c = e[1]; }); return c; };   // 那時講師在哪＝之前最後看到的那關
     const startOf = (sid, t) => { let b = null, a = null; log.forEach(e => { if (e[1] !== sid) return; if (e[0] <= t) b = e[0]; else if (a === null) a = e[0]; }); return b !== null ? b : a; };   // 之前最近一次切到這關；之前沒有就用之後第一次
     let fast = 0, early = 0, late = 0; const delays = [];
-    TASKS.forEach(x => {
+    WORK.forEach(x => {
       const t = at[x.id]; if (!done[x.id] || typeof t !== "number") return;
       const sid = x.id.split(".")[0], s0 = startOf(sid, t);
       if (s0 === null) return;                      // 這台電腦整關沒看到（中途入座／輪詢沒到）：不算偷跑、不放中位數
@@ -107,7 +110,7 @@
     const g = id => (Array.isArray(picks[id]) ? picks[id] : []);
     const plan = sheet.plan || {}, card = sheet.card || {}, vn = st.voteN || {}, sn = st.sortN || {}, copied = st.copied || {};
     return {
-      done, lv: level(st), nDone: TASKS.filter(x => done[x.id]).length, all: TASKS.every(x => done[x.id]),
+      done, lv: level(st), nDone: WORK.filter(x => done[x.id]).length,   /* 上課卡不算：只上課沒作答的人照樣是觀光團 */ all: WORK.every(x => done[x.id]),
       pass: Math.max(0, Math.min(5, Number(st.pass) || 0)), caught: Math.max(0, Math.min(3, Number(st.caught) || 0)),
       brief: chars(sheet.brief), first: chars(sheet.first), self0: Number(st.self0) || 0, self1: Number(st.self1) || 0,
       guessOk: Object.keys(GUESS).filter(id => g(id)[0] === GUESS[id]).length, guessed: Object.keys(GUESS).filter(id => g(id).length).length,
@@ -205,7 +208,7 @@
     return { total: xp + speed + correct + growth + team, xp, speed, correct, growth, team };
   }
   // 每一項的實際上限（集換卡能力值長條的滿格；有測試對 score 驗證）：經驗值＝任務 EXP 加總、手速＝每件 +5、答對＝先猜 2×10＋抓錯 3×10＋考試 5×5、成長＝6 級×5、團隊＝20＋10＋10
-  const SCORE_MAX = { xp: TASKS.reduce((s, x) => s + x.xp, 0), speed: 5 * TASKS.length, correct: 75, growth: 30, team: 40 };
+  const SCORE_MAX = { xp: TASKS.reduce((s, x) => s + x.xp, 0), speed: 5 * WORK.length, correct: 75, growth: 30, team: 40 };
   // ── 以下函式會被 tools/create_wf.py 原樣嵌進 n8n（單一來源），只准用純 JS ──
   function lastReset(rows) { return rows.filter(r => r.Kind === "reset").reduce((m, r) => Math.max(m, Number(r.Id)), 0); }
   // 這一輪的人：同一台電腦（Cid）只算一個人、用第一次入座的順序排號；桌號用最新那列

@@ -217,7 +217,7 @@
   function stageHead(s, h2) {
     const ts = tasksOf(s.id), cnt = h("b"), pips = pipsOf(ts.length), up = UP[s.id], here = IDS.indexOf(s.id);
     const left = h("div", { class: "qh-main" }, h("p", { class: "step-no" }, `${stageLabel(s.id)}｜${s.time}｜PPT ${s.ppt}`), h2,
-      ts.length ? h("p", { class: "qh-cnt" }, "這關已交 ", cnt, " 件 ", pips) : "");
+      ts.length ? h("p", { class: "qh-cnt" }, "這關完成 ", cnt, " 件 ", pips) : "");
     let reward = null, rk = null, rimg = null;
     if (up) {
       const L = LU.LEVELS[up - 1]; rimg = avImg(up, "sil"); rk = h("span", { class: "rw-k" }, "這關解鎖");
@@ -301,10 +301,33 @@
     root.replaceChildren(banner(), sync.bar, h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)), buildMenu());
     STAGES.forEach(s => {   // 報到那一關交件後也留著，可以改、可以再交
       const h2 = h("h2", { tabindex: "-1" }, s.title); stageH2[s.id] = h2;
-      const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id }, stageHead(s, h2), s.blocks.map(renderBlock), askBtn(s));
-      const demo = s.blocks.find(b => b.type === "demo"), wraps = [];
-      walk(el, "pixel-wrap", w => wraps.push(w));
-      if (demo) wraps.forEach((w, i) => { if (demo.cards[i]) w.append(AVATAR.el(demo.cards[i].lv, 64)); });
+      // 先教學、後作答（T12）：報到～第 5 關的上課卡沒上完，作答區根本不建（不是用 CSS 藏）；上完或舊存檔已作答過就直接給作答區，上課收成可展開複習。
+      // 第 6 關與收尾是選看：收在「想複習再點開」，作答一直在。上課卡的狀態只在記憶體，輪詢不碰
+      const answers = h("div", { class: "answers", tabindex: "-1" }), learnBox = h("div", { class: "learn" }), askBox = h("div", {});
+      const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id }, stageHead(s, h2), learnBox, answers, askBox);
+      const fill = () => {
+        if (answers.children.length) return;
+        answers.append(...s.blocks.map(renderBlock));
+        askBox.replaceChildren(askBtn(s));   // 「卡住了？」跟作答一起出現（還沒上完課時會複製到還看不到的題目）
+        const demo = s.blocks.find(b => b.type === "demo"), wraps = [];
+        walk(answers, "pixel-wrap", w => wraps.push(w));
+        if (demo) wraps.forEach((w, i) => { if (demo.cards[i]) w.append(AVATAR.el(demo.cards[i].lv, 64)); });
+      };
+      const lid = s.id + ".learn", needLearn = LU.TASKS.some(x => x.id === lid);
+      const learned = () => { const d = st.done || {}; return !!d[lid] || tasksOf(s.id).some(x => x.id !== lid && d[x.id]); };   // 舊存檔：這關已經有作答＝當作上過課（不擋、不補 EXP）
+      const review = label => {
+        const det = h("details", { class: "t-review" }, h("summary", {}, label));
+        const tc = BLOCKS.teach(s.learn, { lastLabel: "看完了", onFinish: () => { det.open = false; tc.restart(); if (needLearn && !(st.done || {})[lid]) ctx.done(lid); } });   // 舊存檔沒記到上課：複習看完就補記（+5）
+        det.append(tc); learnBox.replaceChildren(det);
+      };
+      if (s.learn && s.learn.length) {
+        if (needLearn && !learned()) learnBox.replaceChildren(BLOCKS.teach(s.learn, { lastLabel: "上完課了，開始作答", onFinish: () => {
+          ctx.done(lid); review("複習上課內容"); fill();
+          if (answers.scrollIntoView) answers.scrollIntoView({ block: "start", behavior: window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+          if (answers.focus) answers.focus({ preventScroll: true });   // 作答區捲到頂、焦點交給它
+        } }));
+        else { review(needLearn ? "複習上課內容" : "想複習再點開"); fill(); }
+      } else fill();
       stageEls[s.id] = el; root.append(el);
     });
     root.append(pager.el);

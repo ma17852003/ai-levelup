@@ -146,6 +146,111 @@
       msg.className = "ok-msg"; msg.textContent = "已開始下載；沒看到的話，長按或右鍵下面這張圖存起來";
     } else { msg.className = "ok-msg"; msg.textContent = "長按下面這張圖存起來"; }
   }
+  // ── 上課卡（T12，行為照宴會 app 的 renderTeach／tFlip／tToggle／tGuess／tMatch；畫面用本專案風格 C）──
+  // 卡片狀態只在記憶體；輪詢不會碰這一塊（app.js 的 renderMenu 只改目錄、橫幅的字和 class）
+  const T_HINT = { flip: "全部點開才能下一步", toggle: "把開關全部打開", guess: "先選一個答案", match: "全部配對正確才能下一步" };
+  const fmtMin = m => (m < 1 ? "30 秒" : `${m} 分鐘`);
+  const addC = (el, c) => { if (!String(el.className).split(" ").includes(c)) el.className = (el.className ? el.className + " " : "") + c; };
+  function tFlip(sc, el, done) {   // 翻卡：每張都點開才揭曉（先體驗、後命名）；只改被點的那張
+    const opened = new Set(), n = sc.cards.length, count = h("p", { class: "step-no t-count" }, `已點開 0 / ${n}`), rev = h("div", { "aria-live": "polite" });
+    const cards = sc.cards.map((x, k) => {
+      const tap = h("span", { class: "tap" }, "點我");
+      const fb = h("span", { class: "fb" }, h("span", { class: "frow" }, h("span", { class: "tagl" }, "比喻"), x.analogy), h("span", { class: "frow" }, h("span", { class: "tagl" }, sc.exLabel || "學校裡"), x.example));
+      fb.hidden = true;
+      const b = h("button", { class: "fcard", type: "button", "aria-expanded": "false" }, h("span", { class: "fh" }, h("b", {}, x.label), x.zh ? h("small", {}, x.zh) : "", tap), fb);
+      b.addEventListener("click", () => {
+        if (opened.has(k)) return;
+        opened.add(k); addC(b, "open"); b.setAttribute("aria-expanded", "true"); fb.hidden = false; if (tap.remove) tap.remove();
+        count.textContent = `已點開 ${opened.size} / ${n}`;
+        if (opened.size === n) { rev.replaceChildren(h("div", { class: "t-reveal" }, h("p", { class: "step-no" }, "全部點開了，揭曉"), h("b", {}, sc.reveal.title), h("p", {}, sc.reveal.text))); done(); }
+      });
+      return b;
+    });
+    el.replaceChildren(count, h("div", { class: "fcards" }, cards), rev);
+  }
+  function tToggle(sc, el, done) {   // 開關：一顆顆打開看結果變好；全開之後還能再關掉一顆（破壞實驗）
+    const on = sc.parts.map(() => false), sep = sc.parts.every(p => /[，。]$/.test(p.say)) ? "" : "、";
+    const said = h("span", {}), rows = sc.parts.map(() => h("div", { class: "rrow off" })), dn = h("div", { "aria-live": "polite" });
+    const upd = () => {
+      const says = sc.parts.filter((_, k) => on[k]).map(p => p.say);
+      said.textContent = says.length ? says.join(sep) : "……";
+      rows.forEach((r, k) => { r.className = "rrow " + (on[k] ? "on" : "off"); r.textContent = on[k] ? sc.parts[k].on : sc.parts[k].off; });
+      const all = on.every(Boolean);
+      dn.replaceChildren(...(all ? [h("div", { class: "t-reveal" }, h("b", {}, sc.done))] : []));
+      if (all) done();
+    };
+    const sws = sc.parts.map((p, k) => {
+      const b = h("button", { class: "sw", type: "button", role: "switch", "aria-checked": "false" }, h("span", { class: "knob", "aria-hidden": "true" }), p.label);
+      b.addEventListener("click", () => { on[k] = !on[k]; b.setAttribute("aria-checked", String(on[k])); b.className = "sw" + (on[k] ? " is-on" : ""); upd(); });
+      return b;
+    });
+    el.replaceChildren(h("div", { class: "switches" }, sws), h("div", { class: "t-say" }, h("span", { class: "lead2" }, sc.lead || ""), said), h("div", { class: "t-results" }, rows), dn);
+    upd();
+  }
+  function tGuess(sc, el, done) {   // 先猜再揭曉：猜錯也算完成（重點是先預測）
+    const out = h("div", { class: "g-out", "aria-live": "polite", tabindex: "-1" }); let settled = false;
+    const bs = sc.options.map(o => h("button", { class: "btn opt gopt", type: "button" }, o));
+    bs.forEach((b, k) => b.addEventListener("click", () => {
+      if (settled) return;
+      settled = true; bs.forEach(x => { x.disabled = true; });
+      const right = k === sc.answer; addC(b, right ? "ok" : "ng"); addC(bs[sc.answer], "ok");
+      out.replaceChildren(h("p", { class: right ? "ok-msg" : "bad-msg" }, right ? "✓ 答對了" : `✗ 正解是「${sc.options[sc.answer]}」`), h("div", { class: "t-reveal" }, h("p", {}, sc.explain)));
+      if (out.focus) out.focus();   // 選了就把焦點給結果（選項已鎖住）
+      done();
+    }));
+    el.replaceChildren(h("p", { class: "t-q" }, sc.question), opts(bs), out);
+  }
+  function tMatch(sc, el, done) {   // 配對：先點一句、再點它屬於的格子；點錯可以重試，全部配對正確才過
+    const placed = {}, order = sc.items.map((_, i) => i); let armed = null;
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }   // 打亂順序（照宴會）
+    const pool = h("div", { class: "mitems" }), mv = h("p", { class: "verdict", "aria-live": "polite" }), btns = {};
+    const mark = () => order.forEach(i => { const b = btns[i]; if (!b) return; const on = armed === i; b.className = "mitem" + (on ? " armed" : ""); b.setAttribute("aria-pressed", String(on)); });   // 選取只切 class 和 aria-pressed，不重建
+    order.forEach(i => { const b = h("button", { class: "mitem", type: "button", "aria-pressed": "false" }, sc.items[i].text); b.addEventListener("click", () => { armed = armed === i ? null : i; mark(); }); btns[i] = b; });
+    const tg = sc.targets.map(t => {
+      const mp = h("span", { class: "mp" }), b = h("button", { class: "mt", type: "button", "data-t": t.id }, h("b", {}, t.label), mp);
+      b.addEventListener("click", () => {
+        if (armed == null) { mv.className = "verdict"; mv.textContent = "先點上面的一句，再點格子"; return; }
+        const it = sc.items[armed];
+        if (it.ans !== t.id) { mv.className = "verdict bad-msg"; mv.textContent = "✗ 不是這一格，再試一次"; return; }
+        const k = order.indexOf(armed), gone = btns[armed];
+        placed[armed] = t.id; delete btns[armed]; if (gone.remove) gone.remove();   // 只拿掉配好的那一顆
+        mp.append(h("span", { class: "mchip" }, "✓ " + it.text.replace(/[「」]/g, "").slice(0, 12)));
+        mv.className = "verdict ok-msg"; mv.textContent = "✓ 答對：" + it.why;
+        armed = null; mark();
+        const nx = order.slice(k + 1).concat(order.slice(0, k)).find(i => btns[i]);
+        if (nx != null) { if (btns[nx].focus) btns[nx].focus(); }
+        else { pool.replaceChildren(h("p", { class: "ok-msg" }, "全部配對完成")); if (tg[0].focus) tg[0].focus(); }   // 焦點移到下一句；沒有了就移到第一個格子
+        if (Object.keys(placed).length === sc.items.length) done();
+      });
+      return b;
+    });
+    pool.replaceChildren(...order.map(i => btns[i]));
+    el.replaceChildren(pool, h("div", { class: "mtargets" }, tg), mv);
+  }
+  // 一張一張上：上一張／下一張；最後一張完成後按 opts.lastLabel 呼叫 opts.onFinish
+  function teach(cards, o) {
+    const wrap = h("div", { class: "teach" }), passed = new Set(); let i = 0;   // passed：做完過的那幾張，回上一張再回來不用重做
+    function show(user) {
+      const k0 = i, sc = cards[i], last = i === cards.length - 1; let ok = passed.has(i);
+      const body = h("div", { class: "t-body" }), next = h("button", { class: "btn primary t-next", type: "button" }), title = h("h3", { class: "t-title", tabindex: "-1" }, sc.title);
+      const upd = () => { next.setAttribute("aria-disabled", String(!ok)); next.textContent = ok ? (last ? o.lastLabel : "下一張") : T_HINT[sc.type]; };   // 不用 disabled：提示字讀得到
+      next.addEventListener("click", () => { if (!ok) return; if (last) o.onFinish(); else { i++; show(true); } });
+      const back = i ? h("button", { class: "btn", type: "button", onclick: () => { i--; show(true); } }, "上一張") : "";
+      wrap.replaceChildren(h("div", { class: "t-card" },
+        h("p", { class: "step-no t-kicker" }, `白話上課 ${i + 1}/${cards.length}・約 ${fmtMin(sc.mins)}`),
+        h("div", { class: "tprog", "aria-hidden": "true" }, cards.map((_, k) => h("span", { class: k < i ? "done" : k === i ? "on" : "" }))),
+        title, sc.intro ? h("p", { class: "t-intro" }, sc.intro) : "", body, actions(back, next)));
+      upd();
+      ({ flip: tFlip, toggle: tToggle, guess: tGuess, match: tMatch })[sc.type](sc, body, () => { passed.add(k0); if (!ok) { ok = true; upd(); } });
+      if (user) {   // 學員自己按上一張／下一張：捲到這張卡頂端、焦點給標題（第一次建畫面、重新整理不捲）
+        if (wrap.scrollIntoView) wrap.scrollIntoView({ block: "start", behavior: calm() ? "auto" : "smooth" });
+        if (title.focus) title.focus({ preventScroll: true });
+      }
+    }
+    show();
+    wrap.restart = () => { i = 0; show(); };
+    return wrap;
+  }
   const R = {
     copy(b, ctx) {
       const get = () => {
@@ -387,5 +492,5 @@
         c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: e => { ctx.done(b.id); flash(e.currentTarget, "✓ 已打開", 3000); } }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
     }
   };
-  window.BLOCKS = { h, R, textOf, flash, press, tableName, geminiLink, cardData, drawCard };
+  window.BLOCKS = { h, R, textOf, flash, press, tableName, geminiLink, cardData, drawCard, teach };
 })();

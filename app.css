@@ -245,4 +245,70 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
   .rw-art { width: 60px; height: 75px; }
   .rw-art::after { width: 90px; height: 90px; margin: -45px 0 0 -45px; }
   .mini { margin: 0 -14px; }   /* 手機：九個點撐到橫幅兩邊，每顆可按的寬度多一點 */
+  .learn .t-card { padding: 12px; }
 }
+/* 上課卡（T12，先教學、後作答；行為照宴會，畫面用風格 C）：白＝做完、綠／紅＝開關前後的對比、金色只給經驗值 */
+.learn { margin: 14px 0 6px; }
+.learn:empty, .answers:empty { display: none; }
+.t-card { background: var(--panel-2); border: 1.5px solid var(--line-strong); border-radius: 14px; padding: 16px; }
+.t-kicker { margin: 0; letter-spacing: .06em; }
+.tprog { display: flex; gap: 6px; margin: 8px 0 4px; }
+.tprog span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.tprog .done { background: var(--fg-dim); } .tprog .on { background: var(--fg); }
+.t-title { margin: 8px 0 4px; font-size: var(--fs-lg); line-height: 1.35; }
+.t-intro { margin: 0 0 12px; color: var(--fg-dim); }
+.t-count { margin: 0 0 8px; }
+.t-card .actions { justify-content: flex-end; }
+/* 翻卡 */
+.fcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.fcard { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; text-align: left; font: inherit; line-height: 1.5; color: var(--fg); background: var(--panel); border: 1.5px dashed var(--line-strong); border-radius: 12px; cursor: pointer;
+  box-shadow: 0 4px 0 var(--bg-deep); transition: transform var(--t-tap) var(--ease-out), box-shadow var(--t-tap) var(--ease-out), border-color var(--t-ui); }
+.fcard:not(.open):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--bg-deep); }
+.fcard.open { border-style: solid; cursor: default; }
+.fh { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.fh b { font-size: var(--fs-md); }
+.fh small { color: var(--fg-dim); font-size: var(--fs-xs); }
+.tap { margin-left: auto; font: 700 var(--fs-xs) var(--font-mono); color: var(--fg-dim); }
+.fb { display: flex; flex-direction: column; gap: 6px; }
+.fb[hidden] { display: none; }
+.frow { display: block; }
+.tagl { display: inline-block; margin-right: 8px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: var(--fs-xs); color: var(--fg-dim); }
+.t-reveal { margin-top: 12px; padding: 12px 14px; background: var(--panel); border-left: 4px solid var(--fg); border-radius: 8px; }
+.t-reveal b { display: block; margin-bottom: 4px; }
+.t-reveal p { margin: 0; }
+/* 開關 */
+.switches { display: flex; flex-wrap: wrap; gap: 8px; }
+.sw { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 14px 6px 8px; font: inherit; color: var(--fg); background: var(--panel); border: 1.5px solid var(--line-strong); border-radius: var(--r-pill); cursor: pointer; }
+.knob { position: relative; flex: none; width: 34px; height: 20px; border-radius: 10px; background: var(--line); transition: background var(--t-ui); }
+.knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--fg-dim); transition: transform var(--t-ui) var(--ease-out); }
+.sw.is-on { border-color: var(--ok); }
+.sw.is-on .knob { background: var(--ok); } .sw.is-on .knob::after { transform: translateX(14px); background: var(--fg); }
+.t-say { margin: 12px 0 8px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.lead2 { font-weight: 700; margin-right: 4px; }
+.t-results { display: flex; flex-direction: column; gap: 4px; }
+.rrow { padding: 6px 10px; border-radius: 6px; font-size: var(--fs-sm); line-height: 1.5; }
+.rrow.off { color: var(--bad); background: rgba(255, 122, 107, .08); } .rrow.on { color: var(--ok); background: rgba(91, 201, 138, .1); }
+/* 先猜 */
+.t-q { font-weight: 700; }
+.gopt.ok { border-color: var(--ok); } .gopt.ng { border-color: var(--bad); }
+.gopt.ok:disabled, .gopt.ng:disabled { opacity: 1; }
+/* 配對 */
+.mitems { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.mitem { padding: 8px 12px; min-height: 44px; text-align: left; font: inherit; line-height: 1.45; color: var(--fg); background: var(--panel); border: 1.5px dashed var(--line-strong); border-radius: 10px; cursor: pointer; }
+.mitem.armed { border: 1.5px solid var(--fg); background: var(--fg); color: var(--bg); }
+.mtargets { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.mt { display: flex; flex-direction: column; gap: 6px; min-height: 56px; padding: 10px 12px; text-align: left; font: inherit; line-height: 1.45; color: var(--fg); background: var(--panel-2); border: 1.5px solid var(--line-strong); border-radius: 10px; cursor: pointer; }
+.mt:hover { border-color: var(--fg); }
+.mp { display: flex; flex-wrap: wrap; gap: 4px; }
+.mchip { padding: 0 8px; border-radius: var(--r-pill); font-size: var(--fs-xs); color: var(--ok); background: rgba(91, 201, 138, .14); }
+.verdict { margin: 10px 0 0; }
+.verdict:empty { display: none; }
+/* 上完之後：收成可以展開的複習 */
+.t-review > summary { display: flex; align-items: center; min-height: 44px; padding: 8px 14px; border: 1.5px dashed var(--line-strong); border-radius: 10px; color: var(--fg-dim); font-weight: 700; cursor: pointer; }
+.t-review[open] > summary { margin-bottom: 10px; }
+.t-review > summary::before { content: "▸"; margin-right: 8px; } .t-review[open] > summary::before { content: "▾"; }   /* flex 會吃掉預設的三角形，自己補 */
+.t-review > summary::-webkit-details-marker { display: none; }
+/* 上課卡審查修正：「下一張」沒完成時用 aria-disabled（提示字讀得到）；換卡捲到卡片頂端時避開頂部狀態列 */
+.t-next[aria-disabled="true"] { opacity: .45; cursor: default; }
+.teach, .answers { scroll-margin-top: 120px; }
+.answers:focus, .t-title:focus, .g-out:focus { outline: none; }
