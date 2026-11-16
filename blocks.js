@@ -19,7 +19,7 @@
   }
   // 賺經驗值（lv>0）的任務用金色 .submit；沒有經驗值的用 .primary（金色只給 XP）
   const submitAttrs = id => { const t = window.LU && window.LU.TASKS.find(x => x.id === id); return { class: "btn " + (!window.LU || (t && t.lv > 0) ? "submit" : "primary"), "data-task": id }; };
-  const watchers = [], notify = () => watchers.forEach(f => f());   // 填格改字時，通知依賴它的紙卡（拷問提示詞帶入第 1 格）
+  const watchers = [], notify = () => watchers.slice().forEach(w => { if (w.el.isConnected === false) watchers.splice(watchers.indexOf(w), 1); else w.f(); });   // 已經不在頁面上的紙卡就不再通知   // 填格改字時，通知依賴它的紙卡（拷問提示詞帶入第 1 格）
   // 送出類訊息要老實：先說「已記下」，flush 完還有東西排隊就說網路恢復後自動送
   // 桌號怎麼念：一般桌「第 7 桌」，線上組「線上第 10 組」
   const tableName = team => /^線上(\d+)$/.test(String(team)) ? `線上第 ${String(team).slice(2)} 組` : `第 ${team} 桌`;
@@ -259,7 +259,7 @@
         return t;
       };
       const paper = h("div", { class: "paper" }, get()), msg = h("span", { "aria-live": "polite" }), manual = h("span", {});
-      if (b.fill) watchers.push(() => { const t = get(); if (paper.textContent !== t) paper.textContent = t; });
+      if (b.fill) watchers.push({ el: paper, f: () => { const t = get(); if (paper.textContent !== t) paper.textContent = t; } });
       return h("div", { class: "block" }, h("p", {}, b.label), paper, actions(
         h("button", { class: "btn copy", onclick: async e => {
           const btn = e.currentTarget; let ok = false;
@@ -492,5 +492,5 @@
         c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: e => { ctx.done(b.id); flash(e.currentTarget, "✓ 已打開", 3000); } }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
     }
   };
-  window.BLOCKS = { h, R, textOf, flash, press, tableName, geminiLink, cardData, drawCard, teach };
+  window.BLOCKS = { h, R, textOf, flash, press, tableName, geminiLink, cardData, drawCard, teach, unwatchAll: () => { watchers.length = 0; }, watching: () => watchers.length };
 })();

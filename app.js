@@ -4,6 +4,8 @@
   const fresh = () => ({ done: {}, pass: 0, caught: 0, sheet: {}, team: "", acct: "", player: 0 });
   let st = API.store.get(KEY, null) || fresh();
   // 兩個分頁開同一份進度：存檔前先跟「最新存的」合併（done 取聯集、pass/caught 取大、填的字逐格比時間，新的非空的贏）
+  // 「我要重來」會清掉的進度欄位（上課卡 *.learn 在 done 裡）；留著：sheet、sheetAt、team、acct、player、resetId、seatedAt、stageLog
+  const PROGRESS = ["done", "doneAt", "undoneAt", "pass", "caught", "picks", "self0", "self1", "voteN", "sortN", "askN", "copied", "manualCopy", "claim", "cardSeen", "relayGroup", "relayRole"];
   function mergeState(a, b) {
     b = b || {};
     const sheet = {}, sheetAt = {}, fields = new Set(Object.keys(a.sheet || {}).concat(Object.keys(b.sheet || {})));
@@ -27,17 +29,28 @@
     if (a.seatedAt || b.seatedAt) out.seatedAt = early(a.seatedAt, b.seatedAt);
     if (a.askN || b.askN) out.askN = Math.max(a.askN || 0, b.askN || 0);
     if (a.manualCopy || b.manualCopy) out.manualCopy = true;
+    // 學員自己「我要重來」（selfResetAt 不同）：進度整包用比較新的那一邊，另一個分頁的舊進度不能合回來；填的字照時間戳合
+    const otherClass = typeof a.resetId === "number" && typeof b.resetId === "number" && a.resetId !== b.resetId;   // 換一堂課的情況在下面處理
+    if (!otherClass && (a.selfResetAt || 0) !== (b.selfResetAt || 0)) {
+      const win = (a.selfResetAt || 0) > (b.selfResetAt || 0) ? a : b;
+      PROGRESS.concat(["selfResetAt"]).forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
+      fillEmpty(out, a, b, ["team", "acct", "player"]);   // 號碼、桌號、帳號：我這邊是空的就拿對方的（0 不能蓋掉 7）
+      return out;
+    }
     // 兩邊不是同一堂課（resetId 不同）：闖關進度整包用 resetId 比較大的那一邊，不能把上一堂的進度合回來；填的字（sheet）照時間戳合
     if (typeof a.resetId === "number" && typeof b.resetId === "number" && a.resetId !== b.resetId) {
       const win = a.resetId > b.resetId ? a : b;
       ["done", "pass", "caught", "picks", "player", "relayGroup", "relayRole", "self0", "self1", "resetId",
-       "doneAt", "undoneAt", "stageSeenAt", "stageLog", "seatedAt", "askN", "voteN", "sortN", "copied", "manualCopy", "claim", "cardSeen"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
+       "doneAt", "undoneAt", "stageSeenAt", "stageLog", "seatedAt", "askN", "voteN", "sortN", "copied", "manualCopy", "claim", "cardSeen", "selfResetAt"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
       return out;
     }
-    ["team", "acct", "player", "resetId", "relayGroup", "relayRole", "self0", "self1"].forEach(k => {
+    fillEmpty(out, a, b, ["team", "acct", "player", "resetId", "relayGroup", "relayRole", "self0", "self1"]);
+    return out;
+  }
+  function fillEmpty(out, a, b, keys) {   // 我這邊（a）是空的（沒有、空字串、0）就拿對方（b）的
+    keys.forEach(k => {
       const mine = a[k]; if (mine === undefined || mine === "" || mine === 0) { if (b[k] !== undefined && b[k] !== "" && !(b[k] === 0 && mine !== undefined)) out[k] = b[k]; else if (mine !== undefined) out[k] = mine; }
     });
-    return out;
   }
   const save = () => { const cur = API.store.fresh ? API.store.fresh(KEY, null) : null; if (cur) st = mergeState(st, cur); API.store.set(KEY, st); };
   function snapshot() {
@@ -209,7 +222,16 @@
       return h("li", { style: `--i:${k + 7}` }, row);
     }));
     const link = (STAGES.find(s => s.id === "end") || { blocks: [] }).blocks.find(b => b.type === "link");   // 附錄：跟收尾關同一個網址
-    menu.el = h("section", { class: "stage menu intro", id: "menu" }, heroEl, closet, h("p", { class: "step-no" }, "點一關進去；講師上到哪一關會標「講師進行中」，你可以自由切換"), menu.h2, list, link ? R.link(link) : "");
+    // 頁面內兩段式確認（不用 window.confirm：LINE／FB 內建瀏覽器可能擋掉，按了沒反應）
+    const againBtn = h("button", { class: "btn small", type: "button", "aria-expanded": "false" }, "我要重來（清掉我的進度）");
+    const msg = h("p", { class: "confirm-msg", tabindex: "-1" }, "確定要清掉你的進度嗎？等級、任務、稱號都會歸零；你寫過的字、號碼和桌號會留著。");
+    const box = h("div", { class: "confirm-box", role: "group", "aria-label": "確認清掉進度" }, msg,
+      h("div", { class: "actions" }, h("button", { class: "btn small danger", type: "button", onclick: () => { close(false); selfReset(); } }, "確定清掉"), h("button", { class: "btn small", type: "button", onclick: () => close(true) }, "取消")));
+    const close = back => { box.hidden = true; againBtn.setAttribute("aria-expanded", "false"); if (back && againBtn.focus) againBtn.focus(); };
+    box.hidden = true;
+    againBtn.addEventListener("click", () => { box.hidden = false; againBtn.setAttribute("aria-expanded", "true"); if (msg.focus) msg.focus(); });
+    const again = h("div", { class: "self-reset" }, againBtn, box);
+    menu.el = h("section", { class: "stage menu intro", id: "menu" }, heroEl, closet, h("p", { class: "step-no" }, "點一關進去；講師上到哪一關會標「講師進行中」，你可以自由切換"), menu.h2, list, link ? R.link(link) : "", again);
     return menu.el;
   }
   // ── 關卡頁頂端（T9）：關號時間 PPT、標題、這關已交 N／M 件＋小格子；會升級的關右邊放「這關解鎖」剪影；底下九個點的小路線（點了就跳關）──
@@ -299,7 +321,12 @@
     started = true;
     const root = document.getElementById("app");
     root.replaceChildren(banner(), sync.bar, h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)), buildMenu());
-    STAGES.forEach(s => {   // 報到那一關交件後也留著，可以改、可以再交
+    STAGES.forEach(s => root.append(buildStage(s)));
+    root.append(pager.el);
+    renderHud(); route(); snapshot(); poll();
+    if (focusFirst && menu.h2.focus) menu.h2.focus();   // 入座後把焦點交給目錄標題（螢幕閱讀器／鍵盤使用者不會停在已消失的按鈕）
+  }
+  function buildStage(s) {   // 報到那一關交件後也留著，可以改、可以再交
       const h2 = h("h2", { tabindex: "-1" }, s.title); stageH2[s.id] = h2;
       // 先教學、後作答（T12）：報到～第 5 關的上課卡沒上完，作答區根本不建（不是用 CSS 藏）；上完或舊存檔已作答過就直接給作答區，上課收成可展開複習。
       // 第 6 關與收尾是選看：收在「想複習再點開」，作答一直在。上課卡的狀態只在記憶體，輪詢不碰
@@ -328,11 +355,23 @@
         } }));
         else { review(needLearn ? "複習上課內容" : "想複習再點開"); fill(); }
       } else fill();
-      stageEls[s.id] = el; root.append(el);
-    });
+      stageEls[s.id] = el;
+      return el;
+  }
+  // 學員自己「我要重來」：只清這一台的進度（比照講師「新的一堂課」，但不動 resetId、不重新取號）；不重新整理，關卡畫面原地重建、回目錄、不播動畫
+  function selfReset() {
+    const keep = {}; ["sheet", "sheetAt", "team", "acct", "player", "resetId", "seatedAt", "stageLog"].forEach(k => { if (st[k] !== undefined) keep[k] = st[k]; });
+    st = Object.assign(keep, { done: {}, pass: 0, caught: 0, selfResetAt: Date.now() });
+    save();   // 跟別的分頁剛存的合併時，selfResetAt 比較新的這邊贏，舊進度不會合回來
+    window.RELAY_UPDATE = null; lastRelay = null;   // 接力組別清掉了，輪詢間隔不再用舊組別算
+    if (BLOCKS.unwatchAll) BLOCKS.unwatchAll();   // 舊關卡的紙卡不再聽「第 1 格」的改動
+    const root = document.getElementById("app");
+    STAGES.forEach(s => { const old = stageEls[s.id]; if (old && old.remove) old.remove(); root.append(buildStage(s)); });
     root.append(pager.el);
-    renderHud(); route(); snapshot(); poll();
-    if (focusFirst && menu.h2.focus) menu.h2.focus();   // 入座後把焦點交給目錄標題（螢幕閱讀器／鍵盤使用者不會停在已消失的按鈕）
+    renderHud(false); snapshot();
+    location.hash = "#menu"; route();
+    if (window.scrollTo) window.scrollTo(0, 0);
+    if (menu.h2.focus) menu.h2.focus({ preventScroll: true });
   }
   // ── 輪詢：講師上到哪一關（只更新目錄上的「講師進行中」，不換頁、不捲動）＋接力 ──
   let lastStage = "", lastRelay = null;
@@ -385,6 +424,6 @@
   }
   if (window.addEventListener) window.addEventListener("storage", onStorage);
   if (document.addEventListener) document.addEventListener("visibilitychange", () => { if (started && document.visibilityState === "visible") poll(); });   // 切回這個分頁：馬上問講師上到哪（背景分頁的計時器會被瀏覽器放慢）
-  window.APP = { ctx, poll, nextPollMs, mergeState, onStorage, route, state: () => st };   // 測試與除錯用
+  window.APP = { ctx, poll, nextPollMs, mergeState, onStorage, route, state: () => st, lastRelay: () => lastRelay };   // 測試與除錯用
   st.team ? start() : seat(document.getElementById("app"));
 })();

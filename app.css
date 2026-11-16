@@ -312,3 +312,12 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .t-next[aria-disabled="true"] { opacity: .45; cursor: default; }
 .teach, .answers { scroll-margin-top: 120px; }
 .answers:focus, .t-title:focus, .g-out:focus { outline: none; }
+/* 「我要重來」：目錄最下面的次要按鈕，小字、虛線、不搶眼 */
+.self-reset { margin: 20px 0 0; text-align: center; }
+.self-reset .btn { background: transparent; color: var(--fg-dim); border-style: dashed; box-shadow: none; }
+.confirm-box { margin: 12px auto 0; max-width: 32em; padding: 12px 14px; text-align: left; border: 1.5px solid var(--bad); border-radius: var(--r-card); background: var(--panel-2); }
+.confirm-box[hidden] { display: none; }
+.confirm-msg { margin: 0; }
+.confirm-box .actions { justify-content: flex-end; }
+.btn.danger { border-color: var(--bad); color: var(--bad); }
+.self-reset .btn.danger { border-style: solid; }
