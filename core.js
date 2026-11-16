@@ -30,11 +30,35 @@
     { id: "team", name: "小隊成軍", ok: st => !!st.done["s5.team"] },
     { id: "plan", name: "三週計畫寫好", ok: st => !!st.done["end.plan"] }
   ];
-  // at＝交件時間（毫秒）：只記第一次，重交不改（手速、偷跑、壓線都看第一次）
+  // at＝交件時間（毫秒）：只記第一次，重交不改（手速、偷跑、壓線都看第一次）。取消打勾再勾回來算「新的一次」（刻意取捨：誤點取消再勾，手速可能變慢）
   function markDone(st, id, extra, at) {
     const out = Object.assign({}, st, extra || {}, { done: Object.assign({}, st.done, { [id]: true }) });
+    const un = (st.undoneAt || {})[id];
+    if (typeof at === "number" && typeof un === "number" && at <= un) at = un + 1;   // 同一毫秒（或時間被取整）內取消再勾：勾的時間一定比取消晚，合併時才不會被吃掉
     if (typeof at === "number" && !(st.doneAt || {})[id]) out.doneAt = Object.assign({}, st.doneAt, { [id]: at });
     return out;
+  }
+  // 取消打勾（2026-11-16）：那件任務不算完成；doneAt 一起拿掉（重新勾記新時間），undoneAt 記取消的時間給兩分頁合併比新舊
+  function markUndone(st, id, at) {
+    const done = Object.assign({}, st.done), doneAt = Object.assign({}, st.doneAt);
+    delete done[id]; delete doneAt[id];
+    const out = Object.assign({}, st, { done, undoneAt: Object.assign({}, st.undoneAt, { [id]: at }) });
+    if (st.doneAt) out.doneAt = doneAt;
+    return out;
+  }
+  // 兩分頁合併 done：沒取消過的照舊（聯集、時間取最早）；取消過的（undoneAt 取最晚），只有勾的時間比取消晚才算，取其中最早的。
+  // 舊存檔沒有時間的勾＝比取消早（取消是新功能，取消之後的勾一定有時間）
+  function mergeDone(a, b) {
+    a = a || {}; b = b || {};
+    const ua = a.undoneAt || {}, ub = b.undoneAt || {}, undoneAt = Object.assign({}, ub, ua);
+    Object.keys(ub).forEach(k => { undoneAt[k] = Math.max(ua[k] || 0, ub[k] || 0); });
+    const done = Object.assign({}, b.done, a.done), doneAt = Object.assign({}, b.doneAt, a.doneAt);
+    Object.keys(b.doneAt || {}).forEach(k => { const x = (a.doneAt || {})[k]; if (x && b.doneAt[k]) doneAt[k] = Math.min(x, b.doneAt[k]); });
+    Object.keys(undoneAt).forEach(id => {
+      const ok = [a, b].filter(x => (x.done || {})[id]).map(x => (x.doneAt || {})[id]).filter(t => typeof t === "number" && t > undoneAt[id]);
+      if (ok.length) { done[id] = true; doneAt[id] = Math.min(...ok); } else { delete done[id]; delete doneAt[id]; }
+    });
+    return { done, doneAt, undoneAt };
   }
   // 一關一關升，不能跳級：Lv.2 要需求單；Lv.3 要先到 Lv.2 再建好 Gem；Lv.4 要先到 Lv.3 再過 4 題
   function level(st) { let lv = 1; for (const m of MILESTONES) { if (m.ok(st)) lv = m.lv; else break; } return lv; }
@@ -231,5 +255,5 @@
     return { resetId, stage, players: people.length, levels, ach, self0, self1, votes, relay, titles, claimed };
   }
   window.LU = { LEVELS, TASKS, ACH, markDone, level, progress, segments, levelUp, achievements, roster, numberOf, relayFor, foldClass,
-    STAGE_ORDER, GUESS, COPY_CARDS, TITLES, titles, score, mergeLog, titleWeight, pickTitle, SCORE_MAX };
+    STAGE_ORDER, GUESS, COPY_CARDS, TITLES, titles, score, mergeLog, titleWeight, pickTitle, SCORE_MAX, markUndone, mergeDone };
 })();

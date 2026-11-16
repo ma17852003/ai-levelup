@@ -232,11 +232,12 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .mini li:last-child::before { right: 50%; }
 .mini li.walked::before { background: var(--fg); }
 .mini-dot { position: relative; width: 100%; min-height: 44px; display: grid; place-items: center; padding: 0; background: transparent; border: 0; border-radius: 8px; cursor: pointer; }
-.mini-dot i { width: 12px; height: 12px; border-radius: 50%; background: var(--panel); border: 2px solid var(--line-strong); }
-.mini .done i { background: var(--fg); border-color: var(--fg); }
-.mini .here i { width: 20px; height: 20px; border: 3px solid var(--fg); }
-.mini .demo i { border: 2px dotted var(--cool); }
-.mini .demo.done i { background: var(--cool); border-style: solid; }
+.mini-dot i { width: 26px; height: 26px; box-sizing: border-box; display: grid; place-items: center; border-radius: 50%; background: var(--panel); border: 2px solid var(--line-strong); font: 800 14px/1 var(--font-mono); font-style: normal; color: var(--fg-dim); }   /* 點裡寫關號（報到／開場／收尾是圖示），數字 14px 看得清楚 */
+.mini .done i { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.mini .here i { border-color: var(--fg); color: var(--fg); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--fg); }   /* 目前這關：外面再圈一圈 */
+.mini .here.done i { background: var(--fg); color: var(--bg); }   /* 這關做完又正在這關：實心底＋深色字，號碼才看得到 */
+.mini .demo i { border: 2px dotted var(--cool); color: var(--cool); }
+.mini .demo.done i { background: var(--cool); border-style: solid; color: var(--on-cool); }
 .mini-dot:hover i { border-color: var(--fg); }
 @media (max-width: 600px) {
   .qhead { grid-template-columns: 1fr; padding: 14px; }

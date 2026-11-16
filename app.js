@@ -17,7 +17,10 @@
     // 稱號用的原始資料：時間取最早、次數取最大、複製過取聯集（舊存檔沒有這些欄位＝當空的）
     const early = (x, y) => (x && y ? Math.min(x, y) : x || y);
     const each = (x, y, f) => { const o = Object.assign({}, y, x); Object.keys(y || {}).forEach(k => { o[k] = f((x || {})[k], y[k]); }); return o; };
-    ["doneAt", "stageSeenAt"].forEach(k => { if (a[k] || b[k]) out[k] = each(a[k], b[k], early); });
+    const md = LU.mergeDone(a, b); out.done = md.done;   // 取消過的不會被另一個分頁的舊勾救活（看 undoneAt 比新舊）
+    if (a.doneAt || b.doneAt) out.doneAt = md.doneAt;
+    if (a.undoneAt || b.undoneAt) out.undoneAt = md.undoneAt;
+    if (a.stageSeenAt || b.stageSeenAt) out.stageSeenAt = each(a.stageSeenAt, b.stageSeenAt, early);
     if (a.stageLog || b.stageLog) out.stageLog = LU.mergeLog(a.stageLog, b.stageLog);   // 講師切關時間軸：聯集、排序、去重
     ["voteN", "sortN"].forEach(k => { if (a[k] || b[k]) out[k] = each(a[k], b[k], (x, y) => Math.max(x || 0, y || 0)); });
     if (a.copied || b.copied) out.copied = Object.assign({}, b.copied, a.copied);
@@ -28,7 +31,7 @@
     if (typeof a.resetId === "number" && typeof b.resetId === "number" && a.resetId !== b.resetId) {
       const win = a.resetId > b.resetId ? a : b;
       ["done", "pass", "caught", "picks", "player", "relayGroup", "relayRole", "self0", "self1", "resetId",
-       "doneAt", "stageSeenAt", "stageLog", "seatedAt", "askN", "voteN", "sortN", "copied", "manualCopy", "claim", "cardSeen"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
+       "doneAt", "undoneAt", "stageSeenAt", "stageLog", "seatedAt", "askN", "voteN", "sortN", "copied", "manualCopy", "claim", "cardSeen"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
       return out;
     }
     ["team", "acct", "player", "resetId", "relayGroup", "relayRole", "self0", "self1"].forEach(k => {
@@ -52,6 +55,7 @@
     done(id, extra) { const before = st; st = LU.markDone(st, id, extra, Date.now()); save(); renderHud(true); const up = LU.levelUp(before, st); if (up) showLevelUps(LU.level(before), up); return snapshot(); },
     sheet(field, value) { st = Object.assign({}, st, { sheet: Object.assign({}, st.sheet, { [field]: value }), sheetAt: Object.assign({}, st.sheetAt, { [field]: Date.now() }) }); save(); },
     set(patch) { st = Object.assign({}, st, patch); save(); },   // 接力選組別／角色用
+    undone(id) { st = LU.markUndone(st, id, Date.now()); save(); renderHud(false); return snapshot(); },   // 取消打勾：照實退級，不播任何動畫；已領的稱號卡不動
     claim(c) { st = Object.assign({}, st, { claim: c }); save(); return snapshot(); },   // 領取／重新計算稱號：存下來並送快照
     send(item) { API.enqueue(item); return flushed(); },
     pending: () => API.pending(),
@@ -178,6 +182,8 @@
   }
   const avImg = (lv, c) => { const i = h("img", { class: c || "", alt: "" }); i.src = `img/avatar-lv${lv}.png`; return i; };
   const emblemOf = s => s.id === "s0" ? icon("pin", 24) : s.id === "open" ? icon("play", 24) : s.id === "end" ? icon("flag", 24) : s.demo ? icon("eye", 26) : s.id.slice(1);
+  const MINI_ICON = { s0: "pin", open: "play", end: "flag" };
+  const miniMark = s => MINI_ICON[s.id] ? icon(MINI_ICON[s.id], 14) : s.id.slice(1);   // 九點小路線：第 1～6 關寫號碼，報到／開場／收尾用跟目錄徽章同一套圖
   const pipsOf = n => h("span", { class: "pips", "aria-hidden": "true" }, Array.from({ length: n }, () => animEnd(h("i"), "pop")));
   function setPips(el, n, user) { Array.from(el.children).forEach((p, j) => { const on = j < n; if (user && on && !has(p, "on")) onceAnim(p, "pop"); cls(p, "on", on); }); }
   const hero = { img: null, lv: h("b"), name: h("span"), desc: h("p", { class: "hero-desc" }), next: h("p", { class: "hero-next" }), closet: [], shown: 0 };
@@ -219,7 +225,7 @@
       reward.addEventListener("animationend", () => cls(reward, "burst", false));   // 光環播完就收掉，切頁回來不重播
     }
     const minis = STAGES.map((t, k) => {
-      const btn = h("button", { type: "button", class: "mini-dot", onclick: () => go(t.id) }, h("i"));
+      const btn = h("button", { type: "button", class: "mini-dot", onclick: () => go(t.id) }, h("i", {}, miniMark(t)));
       if (k === here) btn.setAttribute("aria-current", "step");
       return h("li", { class: [t.demo ? "demo" : "", k < here ? "walked" : "", k === here ? "here" : ""].filter(Boolean).join(" ") }, btn);
     });

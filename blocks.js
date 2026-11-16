@@ -177,9 +177,9 @@
     },
     check(b, ctx) {
       return h("div", { class: "block" }, b.items.map(it => {
-        const done = !!(ctx.st().done || {})[it.id], note = h("span", { class: "step-no" }, done ? " 已完成" : "");
-        const box = h("input", { type: "checkbox", id: "c-" + it.id }); box.checked = done; if (done) box.disabled = true;   // 勾了就不能取消
-        box.addEventListener("change", () => { if (box.checked) { ctx.done(it.id); box.disabled = true; note.textContent = " 已完成"; } });
+        const done = !!(ctx.st().done || {})[it.id], note = h("span", { class: "step-no", "aria-live": "polite" }, done ? " 已完成" : "");
+        const box = h("input", { type: "checkbox", id: "c-" + it.id }); box.checked = done;   // 2026-11-16：勾了可以再取消
+        box.addEventListener("change", () => { if (box.checked) { ctx.done(it.id); note.textContent = " 已完成"; } else { if (ctx.undone) ctx.undone(it.id); note.textContent = ""; } });
         return h("label", { class: "check", for: "c-" + it.id }, box, " ", it.label, note);
       }));
     },
