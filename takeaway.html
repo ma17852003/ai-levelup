@@ -1,7 +1,9 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>我的 AI 團隊設計單</title>
-<link rel="stylesheet" href="theme.css?v=202611161406"><link rel="stylesheet" href="app.css?v=202611161406">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=optional" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=optional"></noscript>
+<link rel="stylesheet" href="theme.css?v=202611161541"><link rel="stylesheet" href="app.css?v=202611161541">
 <style>
   .sheet { max-width: 794px; margin: 0 auto; padding: var(--sp-4); }
   .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-4) 0; }
@@ -15,7 +17,7 @@
   .rows { margin: 0; padding: 0; list-style: none; }
   .rows li { margin: var(--sp-1) 0; }
   .rows b { display: inline-block; min-width: 9.5em; }
-  .title-line { font-weight: 800; font-size: var(--fs-lg); }
+  .title-line { font-weight: 700; font-size: var(--fs-lg); }
   @page { size: A4 portrait; margin: 12mm; }
   @media print {
     body { background: #fff; color: #000; font-size: 11pt; line-height: 1.5; }
@@ -28,7 +30,7 @@
   }
 </style></head>
 <body><main class="sheet" id="sheet"></main>
-<script src="core.js?v=202611161406"></script><script src="pixel.js?v=202611161406"></script><script src="avatar.js?v=202611161406"></script>
+<script src="core.js?v=202611161541"></script><script src="pixel.js?v=202611161541"></script><script src="avatar.js?v=202611161541"></script>
 <script>
 (function () {
   const root = document.getElementById("sheet");
@@ -37,7 +39,11 @@
   let st = null, blocked = false;
   try { st = JSON.parse(localStorage.getItem("lu-st-" + s) || "null"); } catch (e) { st = null; blocked = true; }
   const bar = h("div", "bar noprint"), btn = h("button", "btn submit", "列印／存成 PDF");
-  btn.addEventListener("click", () => window.print()); bar.append(btn, h("span", "step-no", "選「另存成 PDF」就能帶回家；A4 直式"));
+  btn.addEventListener("click", async () => {   // 先等字型載好再印（最多 1.5 秒；沒有 document.fonts 或逾時就照印）
+    const f = document.fonts;
+    if (f && f.ready) await Promise.race([f.ready.catch(() => {}), new Promise(r => setTimeout(r, 1500))]);
+    window.print();
+  }); bar.append(btn, h("span", "step-no", "選「另存成 PDF」就能帶回家；A4 直式"));
   root.append(bar);
   if (blocked) { root.append(h("p", "bad-msg", "這台電腦不允許網頁存檔，設計單無法產生。請回闖關頁，把每一關自己寫的內容複製到 Word 或截圖保存。")); return; }
   if (!st || !st.done) {

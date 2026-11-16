@@ -59,7 +59,14 @@
     return flushed();
   }
   // 送出後更新 HUD 的「待送出 N 筆」（0 筆就藏起來）
-  function refreshPending() { const n = API.pending(); hud.pend.textContent = n > 0 ? `待送出 ${n} 筆` : ""; }
+  function refreshPending() { const n = API.pending(), t = n > 0 ? `待送出 ${n} 筆` : ""; if (hud.pend.textContent !== t) { hud.pend.textContent = t; fitPad(); } }
+  // HUD 變高（多了「待送出 N 筆」換行、窄螢幕徽章換行）時，自動捲動的停點跟著往下＝HUD 高＋12，最少 98（同 app.css 的 html scroll-padding-top）；數值沒變不寫
+  let padTop = 98;
+  function fitPad() {
+    const de = document.documentElement, v = hud.el ? Math.max(98, Math.ceil(hud.el.offsetHeight || 0) + 12) : 98;
+    if (v === padTop || !de || !de.style) return;
+    padTop = v; de.style.scrollPaddingTop = v + "px";
+  }
   const flushWatchers = [];   // 各訊息等「排隊的送完了」改字用
   function notifyFlush() { refreshPending(); flushWatchers.slice().forEach(f => f()); }
   function flushed() { const p = Promise.resolve(API.flush()); p.then(notifyFlush, () => {}); return p; }
@@ -94,10 +101,17 @@
     Array.from(hud.bar.children).forEach((x, i) => { if (user && i < on && !has(x, "on")) { if (!still) x.style.animationDelay = (k++ * 40) + "ms"; onceAnim(x, "fill"); } cls(x, "on", i < on); });
     renderHero(p.lv, user);
     const pct = Math.round(p.ratio * 100);
-    hud.l2.textContent = "（經驗值）"; hud.l3.textContent = `${pct}%`;   // 手機上只留「EXP 30%」，後面兩段用 CSS 藏起來
-    hud.l4.textContent = p.next ? `　再完成幾件就升到 Lv.${p.next}` : "　今天的目標達成：Lv.4 專員";
-    hud.bar.setAttribute("aria-label", hud.label.textContent);
-    hud.no.textContent = st.player ? `${st.player} 號｜${BLOCKS.tableName(st.team)}` : (st.team ? "網路不太穩，先開始玩，編號稍後補上" : "");
+    put(hud.l2, "（經驗值）"); put(hud.l3, `${pct}%`);   // 手機上只留「EXP 30%」，後面兩段用 CSS 藏起來
+    put(hud.l4, p.next ? `再完成幾件就升到 Lv.${p.next}` : "今天的目標達成：Lv.4 專員");   // 間距由 CSS 的 column-gap 負責（不塞全形空白，換行後才不會縮排）
+    const aria = `EXP（經驗值）${pct}%，${hud.l4.textContent}`;   // 兩段中間加逗號（畫面上的間距是 CSS 給的，唸出來會黏在一起）
+    if (hud.bar.getAttribute ? hud.bar.getAttribute("aria-label") !== aria : true) hud.bar.setAttribute("aria-label", aria);
+    const noKey = st.player ? `${st.player}|${st.team}` : (st.team ? "wait" : "");   // 號碼拆三段（手機上排兩行小牌子）；字沒變就不動 DOM
+    if (hud.noKey !== noKey) {
+      hud.noKey = noKey;
+      hud.no.replaceChildren(...(st.player
+        ? [h("span", { class: "no-p" }, `${st.player} 號`), h("span", { class: "no-sep", "aria-hidden": "true" }, "｜"), h("span", { class: "no-t" }, BLOCKS.tableName(st.team))]
+        : st.team ? [h("span", {}, "網路不太穩，先開始玩，編號稍後補上")] : []));
+    }
     renderMenu(user);
   }
   // ── 升級畫面：只播一次，按繼續才關（Esc 也可關；開著時背景 inert） ──
@@ -320,7 +334,8 @@
     if (started) return;   // 只准啟動一次，不會長出兩條輪詢
     started = true;
     const root = document.getElementById("app");
-    root.replaceChildren(banner(), sync.bar, h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no)), buildMenu());
+    root.replaceChildren(banner(), sync.bar, (hud.el = h("header", { class: "hud" }, hud.crest, h("div", {}, hud.bar, hud.label, " ", hud.pend), h("div", {}, hud.pix, hud.no))), buildMenu());
+    if (window.ResizeObserver) new ResizeObserver(fitPad).observe(hud.el);   // 換行、字型載好、轉向造成的變高都抓得到
     STAGES.forEach(s => root.append(buildStage(s)));
     root.append(pager.el);
     renderHud(); route(); snapshot(); poll();
@@ -330,7 +345,7 @@
       const h2 = h("h2", { tabindex: "-1" }, s.title); stageH2[s.id] = h2;
       // 先教學、後作答（T12）：報到～第 5 關的上課卡沒上完，作答區根本不建（不是用 CSS 藏）；上完或舊存檔已作答過就直接給作答區，上課收成可展開複習。
       // 第 6 關與收尾是選看：收在「想複習再點開」，作答一直在。上課卡的狀態只在記憶體，輪詢不碰
-      const answers = h("div", { class: "answers", tabindex: "-1" }), learnBox = h("div", { class: "learn" }), askBox = h("div", {});
+      const answers = h("div", { class: "answers", tabindex: "-1" }), learnBox = h("div", { class: "learn" }), askBox = h("div", { class: "ask" });
       const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id }, stageHead(s, h2), learnBox, answers, askBox);
       const fill = () => {
         if (answers.children.length) return;

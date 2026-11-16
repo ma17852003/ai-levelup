@@ -75,12 +75,20 @@
       if (i.decode) { i.src = src; i.decode().then(ok, bad); } else { i.onload = ok; i.onerror = bad; i.src = src; }
     });
   }
+  const cssVar = k => { try { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); } catch (e) { return ""; } };
+  const cardFam = () => ({ sans: cssVar("--font-sans") || "sans-serif", mono: cssVar("--font-mono") || "monospace" });
+  // 卡片上每種「粗細＋字型」要畫哪些字（跟 drawCard 一一對應，改字型兩邊一起改）：畫之前先 document.fonts.load，中文字型照字分片，頁面上沒出現過的字要點名才會下載
+  function cardFontNeeds(d) {
+    const { sans, mono } = cardFam();
+    return [[`400 32px ${sans}`, [d.why, d.foot, "總積分", ...d.stats.map(s => s[0])].join("")], [`700 32px ${sans}`, ["AI 升級之路｜結業卡", "你的結業稱號", d.lvText, d.name].join("")],
+      [`700 28px ${mono}`, d.no], [`800 36px ${mono}`, [d.total, ...d.stats.map(s => s[1])].join("")]];
+  }
   // 用 Canvas 2D 自己畫一張集換卡（800 寬＝卡片 400px 的兩倍）。顏色、字型讀 theme.css 的變數，讀不到才用同樣的值
   function drawCard(cv, d, img) {
-    const css = k => { try { return getComputedStyle(document.documentElement).getPropertyValue(k).trim(); } catch (e) { return ""; } };
+    const css = cssVar;
     const C = { bg: css("--bg") || "#12162A", deep: css("--bg-deep") || "#0D1022", panel: css("--panel") || "#1C2242", panel2: css("--panel-2") || "#252C55",
       fg: css("--fg") || "#EEF0F7", dim: css("--fg-dim") || "#A6ACC8", line: css("--line-strong") || "#7D84A8", gold: css("--gold") || "#F4B740", onGold: css("--on-gold") || "#2A1F05" };
-    const sans = css("--font-sans") || "sans-serif", mono = css("--font-mono") || "monospace";
+    const { sans, mono } = cardFam();
     const c = cv.getContext("2d"), W = 800;
     const fit = (text, weight, size, fam, maxW, min) => { let z = size; c.font = `${weight} ${z}px ${fam}`; while (z > min && c.measureText(text).width > maxW) { z -= 2; c.font = `${weight} ${z}px ${fam}`; } return z; };
     const wrap = (text, maxW) => { const out = []; let line = ""; Array.from(text).forEach(ch => { if (line && c.measureText(line + ch).width > maxW) { out.push(line); line = ch; } else line += ch; }); if (line) out.push(line); return out; };
@@ -92,7 +100,7 @@
     c.fillStyle = C.bg; c.fillRect(0, 0, W, H);
     rr(3, 3, W - 6, H - 6, 36); c.fillStyle = C.panel2; c.fill(); c.lineWidth = 6; c.strokeStyle = C.fg; c.stroke();
     rr(14, 14, W - 28, H - 28, 26); c.lineWidth = 2; c.strokeStyle = C.line; c.stroke();
-    text("AI 升級之路｜結業卡", 40, 64, `700 28px ${mono}, ${sans}`, C.dim); text(d.no, W - 40, 64, `700 28px ${mono}`, C.dim, "right");
+    text("AI 升級之路｜結業卡", 40, 64, `700 28px ${sans}`, C.dim); text(d.no, W - 40, 64, `700 28px ${mono}`, C.dim, "right");
     // 展示窗：深藍底＋放射光＋腳下影子＋小人＋金色等級牌
     rr(28, 88, W - 56, 440, 24); const g = c.createRadialGradient(W / 2, 352, 20, W / 2, 352, 420); g.addColorStop(0, C.panel2); g.addColorStop(1, C.deep);
     c.fillStyle = g; c.fill();
@@ -101,10 +109,10 @@
     c.restore(); rr(28, 88, W - 56, 440, 24); c.lineWidth = 2; c.strokeStyle = C.line; c.stroke();
     c.save(); c.globalAlpha = .55; c.fillStyle = "black"; c.beginPath(); c.ellipse(W / 2, 500, 150, 22, 0, 0, Math.PI * 2); c.fill(); c.restore();
     if (img) { const ih = 392, iw = ih * (img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 0.8); c.drawImage(img, (W - iw) / 2, 508 - ih, iw, ih); }
-    c.font = `800 32px ${mono}, ${sans}`; const tw = c.measureText(d.lvText).width; rr(44, 104, tw + 28, 50, 14); c.fillStyle = C.gold; c.fill(); text(d.lvText, 58, 140, `800 32px ${mono}, ${sans}`, C.onGold);
+    c.font = `700 32px ${sans}`; const tw = c.measureText(d.lvText).width; rr(44, 104, tw + 28, 50, 14); c.fillStyle = C.gold; c.fill(); text(d.lvText, 58, 140, `700 32px ${sans}`, C.onGold);   // 含中文名：中文字型＋700（跟網頁 .tc-lvtag 一樣）
     // 名牌（壓在展示窗下緣）
     rr(56, 476, W - 112, 150, 20); c.fillStyle = C.panel; c.fill(); c.lineWidth = 4; c.strokeStyle = C.fg; c.stroke();
-    text("你的結業稱號", W / 2, 520, `700 28px ${mono}, ${sans}`, C.dim, "center");
+    text("你的結業稱號", W / 2, 520, `700 28px ${sans}`, C.dim, "center");
     const nz = fit(d.name, 700, 56, sans, W - 160, 28); text(d.name, W / 2, 592, `700 ${nz}px ${sans}`, C.fg, "center");
     why.forEach((l, i) => text(l, W / 2, 680 + i * 48, `400 32px ${sans}`, C.fg, "center"));
     // 能力值長條（經驗值金色，其他白色；滿格＝各項上限）
@@ -128,7 +136,9 @@
     let cv, blob = null, view = "";
     try {
       const img = await loadImg(`img/avatar-lv${d.lv}.png`);
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;   // 中文字型跟頁面同一套，等它載好
+      const F = document.fonts;
+      if (F && F.load) await Promise.race([Promise.all(cardFontNeeds(d).map(([f, t]) => F.load(f, t))).catch(() => {}), new Promise(r => setTimeout(r, 1500))]);   // 載不到、超過 1.5 秒就用備援字型照畫
+      if (F && F.ready) await F.ready;   // 中文字型跟頁面同一套，等它載好
       cv = document.createElement("canvas"); drawCard(cv, d, img);
       blob = await new Promise(r => (cv.toBlob ? cv.toBlob(r, "image/png") : r(null)));
       if (!(blob && U && U.createObjectURL)) { blob = null; view = cv.toDataURL("image/png"); }
@@ -162,7 +172,11 @@
         if (opened.has(k)) return;
         opened.add(k); addC(b, "open"); b.setAttribute("aria-expanded", "true"); fb.hidden = false; if (tap.remove) tap.remove();
         count.textContent = `已點開 ${opened.size} / ${n}`;
-        if (opened.size === n) { rev.replaceChildren(h("div", { class: "t-reveal" }, h("p", { class: "step-no" }, "全部點開了，揭曉"), h("b", {}, sc.reveal.title), h("p", {}, sc.reveal.text))); done(); }
+        if (opened.size === n) {
+          rev.replaceChildren(h("div", { class: "t-reveal" }, h("p", { class: "step-no" }, "全部點開了，揭曉"), h("b", {}, sc.reveal.title), h("p", {}, sc.reveal.text)));
+          if (rev.scrollIntoView) rev.scrollIntoView({ block: "nearest", behavior: calm() ? "auto" : "smooth" });   // 學員點開最後一張才會走到這裡：捲到揭曉剛好看得見，不跳頂
+          done();
+        }
       });
       return b;
     });
@@ -214,7 +228,7 @@
         if (it.ans !== t.id) { mv.className = "verdict bad-msg"; mv.textContent = "✗ 不是這一格，再試一次"; return; }
         const k = order.indexOf(armed), gone = btns[armed];
         placed[armed] = t.id; delete btns[armed]; if (gone.remove) gone.remove();   // 只拿掉配好的那一顆
-        mp.append(h("span", { class: "mchip" }, "✓ " + it.text.replace(/[「」]/g, "").slice(0, 12)));
+        mp.append(h("span", { class: "mchip" }, "✓ " + it.text.replace(/[「」]/g, "")));   // 整句顯示（排版精修 P-1）
         mv.className = "verdict ok-msg"; mv.textContent = "✓ 答對：" + it.why;
         armed = null; mark();
         const nx = order.slice(k + 1).concat(order.slice(0, k)).find(i => btns[i]);
@@ -369,7 +383,7 @@
     },
     caught(b, ctx) {
       const saved0 = ((ctx.st().picks || {})[b.id]) || [];
-      const boxes = b.items.map((x, i) => { const c = h("input", { type: "checkbox", id: "cg" + i }); c.checked = saved0.includes(i); return [c, h("label", { for: "cg" + i }, c, " ", x)]; });
+      const boxes = b.items.map((x, i) => { const c = h("input", { type: "checkbox", id: "cg" + i }); c.checked = saved0.includes(i); return [c, h("label", { class: "check", for: "cg" + i }, c, " ", x)]; });
       const st = ctx.st(), saved = h("p", { class: "ok-msg", "aria-live": "polite" }, (st.done || {})[b.id] && typeof st.caught === "number" ? `✓ 已送出：抓到 ${st.caught} 個` : "");
       return h("div", { class: "block" }, h("p", {}, "1:35 揭曉後：你們這組抓到了哪幾個？"), boxes.map(x => x[1]), actions(
         h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => {
@@ -413,7 +427,7 @@
       if (ctx.st().relayGroup && ctx.st().relayRole) { body(); return wrap; }
       const team = ctx.st().team, isOnline = /線上/.test(team);
       const gsel = h("select", { "aria-label": "組別" }, [1, 2, 3].map(n => h("option", { value: n }, `第 ${n} 組`)));
-      const roleBtns = Object.keys(roles).filter(k => !(isOnline && k === "C")).map(k => h("button", { class: "btn", onclick: () => {
+      const roleBtns = Object.keys(roles).filter(k => !(isOnline && k === "C")).map(k => h("button", { class: "btn opt", onclick: () => {
         ctx.set({ relayGroup: `${team}-${gsel.value}`, relayRole: k });   // 只記組別和角色；交棒時才算完成任務
         body();
       } }, `${k} ${roles[k][0]}`));

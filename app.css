@@ -1,5 +1,4 @@
 /* 學員頁補充樣式（theme.css 不動；這裡只放頭像尺寸與小細節） */
-.hud > div:last-child { display: flex; align-items: center; gap: var(--sp-2); }
 .avatar { display: block; height: auto; max-width: 100%; border-radius: var(--r-card); }
 .avatar-fb { display: inline-block; }
 .avatar-fb svg { width: 100%; height: auto; }
@@ -14,30 +13,43 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .tick { display: inline-block; width: 1.2em; text-align: left; }
 .paper:empty { display: none; }
 .btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 700; }
-.pend { margin-left: var(--sp-2); }
 .pend:empty { display: none; }
 .banner { border: 2px solid var(--bad); border-radius: var(--r-card); padding: var(--sp-3); }
 .pool { min-height: 56px; border: 1.5px dashed var(--line-strong); border-radius: var(--r-card); padding: var(--sp-2); }
+/* HUD（排版精修 H1）：所有寬度都是兩排——第一排徽章｜經驗值文字｜小人｜號碼，第二排整條 20 格經驗條 */
+.hud { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "crest label pix no" "bar bar bar bar"; column-gap: 12px; row-gap: 8px; padding: 10px 0; }
+.hud > div { display: contents; }
+.hud .crest { grid-area: crest; white-space: nowrap; }
+.hud .exp-label { grid-area: label; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .5em; line-height: 1.4; }
+.hud .exp-label > span { white-space: nowrap; }      /* 只准在「15%」和「再完成…」之間換行，不准斷在字中間 */
+.hud .exp { grid-area: bar; }
+.hud .pix { grid-area: pix; }
+.hud .hud-no { grid-area: no; display: flex; flex-wrap: wrap; justify-content: flex-end; text-align: right; line-height: 1.3; }
+.hud-no .no-p, .hud-no .no-t { white-space: nowrap; }
+.hud .pend { grid-column: 1 / -1; margin: 0; }      /* 有「待送出」才多一排；沒有就不佔空間 */
+.hud .avatar { width: 36px; height: 45px; }   /* 寬螢幕的小人也縮一點，HUD 才壓得到 90px 以內（V5；清單沒寫，量出來 48px 小人會撐到 103px） */
+@media (max-width: 760px) { .exp-label > :nth-child(2) { display: none; } }   /* 「（經驗值）」在 760 以下收起來 */
+@media (max-width: 680px) { .exp-long { display: none; } }   /* 審查修正：481～680 寬「再完成…／今天的目標達成…」會溢出蓋到小人和號碼（實量 641 寬最壞情況還會蓋到），680 以下只留「EXP 15%」 */
 @media (max-width: 480px) {
-  /* 手機：頭一排＝徽章＋EXP 百分比＋小頭像＋編號；第二排＝整條 20 格經驗條；高度約 90px */
-  .hud { grid-template-columns: auto 1fr auto auto; grid-template-areas: "crest label pix no" "bar bar bar bar" "pend pend pend pend"; gap: var(--sp-2) var(--sp-2); padding: var(--sp-2) 0; }
-  .hud > div { display: contents; }
-  .hud .crest { grid-area: crest; font-size: 18px; padding: 0 8px; }
-  .hud .exp-label { grid-area: label; font-size: 14px; }
-  .hud .exp { grid-area: bar; }
-  .hud .pix { grid-area: pix; }
-  .hud .hud-no { grid-area: no; font-size: 14px; max-width: 40vw; line-height: 1.3; }
-  .hud .pend { grid-area: pend; margin: 0; }
+  .hud { column-gap: 8px; }
+  .hud .crest { font-size: 18px; padding: 0 8px; }
+  .hud .exp-label, .hud .hud-no { font-size: 14px; }
+  .hud .exp-label { flex-wrap: nowrap; column-gap: .3em; }   /* 審查修正：「EXP」「65%」不拆兩行 */
   .hud .avatar { width: 32px; height: 40px; }
-  .exp-long { display: none; }
-  .exp-pct { margin-left: .4em; }
+  .hud .hud-no { flex-direction: column; flex-wrap: nowrap; align-items: flex-end; max-width: 40vw; }
+  .hud-no .no-sep { display: none; }
 }
+@media (max-width: 400px) { .hud .crest { font-size: 16px; padding: 0 6px; } }   /* 360 寬最長的徽章＋「100%」才不會蓋到小人 （寫在 480 那段後面才生效） */
 .sync-bar { background: var(--panel-2); border: 1.5px solid var(--line-strong); border-radius: var(--r-card); padding: var(--sp-2) var(--sp-3); margin: var(--sp-2) 0; font-size: var(--fs-sm); }
 .sync-bar.hide { display: none; }
 .btn.small { min-height: var(--tap-min); font-size: var(--fs-sm); padding: 0 var(--sp-3); }
 /* 按鈕與文字自適應（2026-11-13）：選項成組換行、送出列獨立一排、手機一個選項一行 */
 .btn { white-space: normal; line-height: 1.3; max-width: 100%; box-sizing: border-box; }
-.opts { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0; }
+.opts { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap, 10px); margin: var(--sp-3) 0; }   /* 排版精修 A2 */
+@media (min-width: 600px) {
+  .opts:has(> .btn:last-child:nth-child(even)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.opts .btn { width: 100%; justify-content: flex-start; border-radius: 12px; }   /* 選答案＝圓角方塊，跟藥丸形的動作按鈕分開 */
 .btn.opt { display: inline-flex; align-items: center; gap: .5em; text-align: left; padding: var(--sp-2) var(--sp-4); }
 .btn.opt .tick { flex: none; text-align: center; color: var(--fg-dim); }
 .btn.opt[aria-pressed="true"] .tick { color: inherit; }
@@ -49,8 +61,6 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
   .app { padding: var(--sp-3); }
   .stage { padding: var(--sp-4); }
   .btn { font-size: 16px; padding: var(--sp-2) var(--sp-4); }
-  .opts { flex-direction: column; }
-  .opts .btn { width: 100%; justify-content: flex-start; }
   .actions > .btn, .actions > a.btn { flex: 1 1 100%; justify-content: center; text-align: center; }
   .actions > span { flex-basis: 100%; }
 }
@@ -66,19 +76,19 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .tback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center;
   background: radial-gradient(60% 40% at 50% 40%, rgba(238, 240, 247, .08), transparent 70%), repeating-linear-gradient(45deg, rgba(238, 240, 247, .05) 0 10px, transparent 10px 20px), var(--panel-2); }
 .tback .q { font: 700 120px/1 var(--font-latin-display); color: var(--fg); opacity: .9; }
-.tback p { margin: 0; font: 700 var(--fs-sm)/1.5 var(--font-mono); letter-spacing: .14em; color: var(--fg-dim); }
+.tback p { margin: 0; font: 400 var(--fs-kicker)/1.5 var(--font-sans); letter-spacing: .14em; color: var(--fg-dim); }
 .tcard { position: relative; overflow: hidden; padding: 12px 12px 14px; background: var(--panel-2); transform: rotateY(180deg); }
 .tcard::before { content: ""; position: absolute; inset: 6px; border: 1px solid var(--line-strong); border-radius: 13px; pointer-events: none; }
 .tcard::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .16) 48%, rgba(255, 255, 255, .04) 56%, transparent 66%); background-size: 260% 100%; background-position: var(--sx, 120%) 0; opacity: var(--so, 0); transition: opacity .3s; }
 .tflip.reveal .tcard::after { animation: sheen 1.3s .75s ease-out both; }
 @keyframes sheen { from { opacity: 1; background-position: 120% 0; } to { opacity: 1; background-position: -20% 0; } }
-.tc-top { position: relative; display: flex; justify-content: space-between; gap: 8px; padding: 2px 6px 8px; font: 700 var(--fs-xs)/1.4 var(--font-mono); color: var(--fg-dim); }
+.tc-top { position: relative; display: flex; justify-content: space-between; gap: 8px; padding: 2px 6px 8px; font: 400 var(--fs-kicker)/1.4 var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: .02em; color: var(--fg-dim); }
 .tc-art { position: relative; height: 220px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line-strong);
   background: radial-gradient(55% 12% at 50% 93%, rgba(0, 0, 0, .55), transparent 70%), repeating-conic-gradient(from 0deg at 50% 62%, rgba(238, 240, 247, .07) 0deg 8deg, transparent 8deg 16deg), radial-gradient(80% 70% at 50% 60%, var(--panel-2), var(--bg-deep) 80%); }
 .tc-art img { position: absolute; left: 0; right: 0; bottom: 10px; margin: auto; height: 196px; width: auto; max-width: none; }
-.tc-lvtag { position: absolute; top: 8px; left: 8px; font: 800 var(--fs-sm)/1.4 var(--font-mono); color: var(--on-gold); background: var(--gold); border-radius: 8px; padding: 2px 8px; }
+.tc-lvtag { position: absolute; top: 8px; left: 8px; font: 700 var(--fs-sm)/1.4 var(--font-sans); font-variant-numeric: tabular-nums; color: var(--on-gold); background: var(--gold); border-radius: 8px; padding: 2px 8px; }
 .tc-plate { position: relative; margin: -26px 14px 0; padding: 6px 10px 8px; background: var(--panel); border: 2px solid var(--fg); border-radius: 10px; text-align: center; }
-.tc-kicker { margin: 0; font: 700 var(--fs-xs)/1.5 var(--font-mono); letter-spacing: .12em; color: var(--fg-dim); }
+.tc-kicker { margin: 0; font: 400 var(--fs-kicker)/1.5 var(--font-sans); letter-spacing: .12em; color: var(--fg-dim); }
 .tc-name { margin: 0; font-size: 28px; line-height: 1.3; overflow-wrap: anywhere; }
 .tc-why { position: relative; margin: 10px 8px 0; text-align: center; font-size: var(--fs-sm); line-height: 1.6; color: var(--fg); }
 .tc-stats { position: relative; margin: 12px 8px 0; display: grid; grid-template-columns: auto minmax(0, 1fr) 2.6em; gap: 6px 10px; align-items: center; }
@@ -116,7 +126,7 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .menu .hero-art img.pose { animation: pose .6s var(--ease-out); }   /* 權重高過 .intro .hero-art img：升級跳一下不會被進場動畫蓋掉 */
 @keyframes pose { 0% { transform: translateY(0) scale(1); } 35% { transform: translateY(-14px) scale(1.04); } 100% { transform: none; } }
 .hero-info { align-self: end; }
-.hero-k { margin: 0; font: 700 var(--fs-xs)/1.5 var(--font-mono); letter-spacing: .12em; color: var(--fg-dim); }
+.hero-k { margin: 0; font: 400 var(--fs-kicker)/1.5 var(--font-sans); letter-spacing: .12em; color: var(--fg-dim); }
 .hero-lv { margin: 2px 0 0; font-size: 30px; font-weight: 700; line-height: 1.25; }
 .hero-lv b { font: 800 30px var(--font-mono); color: var(--gold); margin-right: 8px; }
 .hero-desc { margin: 0; color: var(--fg-dim); }
@@ -151,17 +161,17 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .menu-row.demo .emblem { border: 2px dotted var(--cool); color: var(--cool); }
 .em-ok { position: absolute; right: -7px; bottom: -7px; width: 22px; height: 22px; border-radius: 50%; background: var(--ok); color: var(--bg-deep); border: 2px solid var(--panel-2); display: none; place-items: center; }
 .full .em-ok { display: grid; }
-.mr-no { display: block; font: 800 var(--fs-xs)/1.5 var(--font-mono); color: var(--fg-dim); }
+.mr-no { display: block; font: 400 var(--fs-kicker)/1.5 var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: .02em; color: var(--fg-dim); }
 .mr-no:empty { display: none; }   /* 報到／開場／收尾：關名已含名稱，不重複小標 */
 .mr-name { display: block; font-weight: 700; }
 .q-main { min-width: 0; }
-.q-main small { display: block; font: 700 var(--fs-xs)/1.5 var(--font-mono); color: var(--fg-dim); }
+.q-main small { display: block; font: 400 var(--fs-label)/1.5 var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: .02em; color: var(--fg-dim); }
 .q-reward { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 0 10px 0 2px; border: 1.5px dashed var(--gold); border-radius: var(--r-pill); font-size: var(--fs-xs); line-height: 1.6; color: var(--fg); }
 .q-reward img { width: 20px; height: 25px; object-fit: contain; }
 .q-reward b { color: var(--gold); }
 .q-reward.got { border-style: solid; }
 .mr-st { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; white-space: nowrap; }
-.mr-cnt { font: 700 var(--fs-sm)/1.3 var(--font-mono); color: var(--fg-dim); }
+.mr-cnt { font: 400 var(--fs-label)/1.3 var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: .02em; color: var(--fg-dim); }
 .menu-row.full .mr-cnt { color: var(--ok); }
 .mr-now { font-size: var(--fs-xs); font-weight: 700; line-height: 1.6; color: var(--on-cool); background: var(--cool); border-radius: var(--r-pill); padding: 0 10px; }
 /* 件數小格子：做了幾件亮幾格（白色，不用金色）；學員自己交件那一格跳一下 */
@@ -213,13 +223,13 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .qhead.no-reward { grid-template-columns: minmax(0, 1fr); }
 .qhead h2 { margin: 0; }
 .qh-cnt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 10px 0 0; font-size: var(--fs-sm); }
-.qh-cnt b { font-family: var(--font-mono); }
+.qh-cnt b { font-variant-numeric: tabular-nums; }   /* 跟 .mr-cnt 一樣用中文字型＋等寬數字 */
 .reward { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px; border: 1.5px dashed var(--gold); border-radius: 12px; text-align: center; }
 .rw-art { position: relative; width: 84px; height: 105px; flex: none; }
 .rw-art img { width: 100%; height: 100%; object-fit: contain; transition: filter 1s var(--ease-out), opacity 1s var(--ease-out); }
 .rw-art::after { content: ""; position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 3px solid var(--gold); opacity: 0; pointer-events: none; }
 .reward figcaption { display: flex; flex-direction: column; line-height: 1.4; }
-.rw-k { font: 700 var(--fs-xs)/1.5 var(--font-mono); color: var(--fg-dim); }
+.rw-k { font: 400 var(--fs-kicker)/1.5 var(--font-sans); letter-spacing: .02em; color: var(--fg-dim); }
 .reward b { color: var(--gold); font-size: var(--fs-md); }
 .rw-d { font-size: var(--fs-xs); color: var(--fg-dim); }
 .reward.unlocked { border-style: solid; }
@@ -260,25 +270,33 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .t-count { margin: 0 0 8px; }
 .t-card .actions { justify-content: flex-end; }
 /* 翻卡 */
-.fcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.fcards { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap, 10px); }   /* 排版精修 F1：一欄；600 以上偶數張才兩欄，不會落單 */
+@media (min-width: 600px) {
+  .fcards:has(> .fcard:last-child:nth-child(even)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* 偶數張：兩欄；奇數張：一欄清單（舊瀏覽器不認得 :has 就是一欄） */
+}
 .fcard { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; text-align: left; font: inherit; line-height: 1.5; color: var(--fg); background: var(--panel); border: 1.5px dashed var(--line-strong); border-radius: 12px; cursor: pointer;
   box-shadow: 0 4px 0 var(--bg-deep); transition: transform var(--t-tap) var(--ease-out), box-shadow var(--t-tap) var(--ease-out), border-color var(--t-ui); }
 .fcard:not(.open):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--bg-deep); }
 .fcard.open { border-style: solid; cursor: default; }
-.fh { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
-.fh b { font-size: var(--fs-md); }
-.fh small { color: var(--fg-dim); font-size: var(--fs-xs); }
-.tap { margin-left: auto; font: 700 var(--fs-xs) var(--font-mono); color: var(--fg-dim); }
-.fb { display: flex; flex-direction: column; gap: 6px; }
+.fcard { position: relative; }
+.fh { display: grid; gap: 2px; padding-right: 3.5em; }   /* 排版精修 F2：右上角留給「點我」 */
+.fcard.open .fh { padding-right: 0; }
+.fh b { font-size: var(--fs-md); line-height: 1.4; }
+.fh small { color: var(--fg-dim); font-size: var(--fs-xs); line-height: 1.45; }
+.tap { position: absolute; top: 12px; right: 14px; font: 400 var(--fs-label) var(--font-sans); color: var(--fg-dim); }
+.fb { display: flex; flex-direction: column; }
 .fb[hidden] { display: none; }
 .frow { display: block; }
-.tagl { display: inline-block; margin-right: 8px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: var(--fs-xs); color: var(--fg-dim); }
+.tagl { padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: var(--fs-xs); color: var(--fg-dim); }
 .t-reveal { margin-top: 12px; padding: 12px 14px; background: var(--panel); border-left: 4px solid var(--fg); border-radius: 8px; }
 .t-reveal b { display: block; margin-bottom: 4px; }
 .t-reveal p { margin: 0; }
 /* 開關 */
-.switches { display: flex; flex-wrap: wrap; gap: 8px; }
-.sw { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 14px 6px 8px; font: inherit; color: var(--fg); background: var(--panel); border: 1.5px solid var(--line-strong); border-radius: var(--r-pill); cursor: pointer; }
+.switches { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }   /* 排版精修 W1 */
+@media (min-width: 600px) {
+  .switches:has(> .sw:last-child:nth-child(even)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.sw { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; min-height: 48px; padding: 6px 14px 6px 10px; text-align: left; font: inherit; color: var(--fg); background: var(--panel); border: 1.5px solid var(--line-strong); border-radius: 12px; cursor: pointer; }
 .knob { position: relative; flex: none; width: 34px; height: 20px; border-radius: 10px; background: var(--line); transition: background var(--t-ui); }
 .knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--fg-dim); transition: transform var(--t-ui) var(--ease-out); }
 .sw.is-on { border-color: var(--ok); }
@@ -296,11 +314,14 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .mitems { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .mitem { padding: 8px 12px; min-height: 44px; text-align: left; font: inherit; line-height: 1.45; color: var(--fg); background: var(--panel); border: 1.5px dashed var(--line-strong); border-radius: 10px; cursor: pointer; }
 .mitem.armed { border: 1.5px solid var(--fg); background: var(--fg); color: var(--bg); }
-.mtargets { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.mtargets { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--grid-gap, 10px); }   /* 排版精修 P-2 */
+@media (min-width: 600px) {
+  .mtargets:has(> .mt:last-child:nth-child(even)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .mt { display: flex; flex-direction: column; gap: 6px; min-height: 56px; padding: 10px 12px; text-align: left; font: inherit; line-height: 1.45; color: var(--fg); background: var(--panel-2); border: 1.5px solid var(--line-strong); border-radius: 10px; cursor: pointer; }
 .mt:hover { border-color: var(--fg); }
-.mp { display: flex; flex-wrap: wrap; gap: 4px; }
-.mchip { padding: 0 8px; border-radius: var(--r-pill); font-size: var(--fs-xs); color: var(--ok); background: rgba(91, 201, 138, .14); }
+.mp { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }   /* 排版精修 P-1：整句顯示，長句換行後對齊 */
+.mchip { display: block; max-width: 100%; box-sizing: border-box; padding: 3px 10px 3px calc(10px + 1.1em); text-indent: -1.1em; border-radius: 8px; font-size: var(--fs-xs); line-height: 1.5; color: var(--ok); background: rgba(91, 201, 138, .14); }
 .verdict { margin: 10px 0 0; }
 .verdict:empty { display: none; }
 /* 上完之後：收成可以展開的複習 */
@@ -310,7 +331,6 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .t-review > summary::-webkit-details-marker { display: none; }
 /* 上課卡審查修正：「下一張」沒完成時用 aria-disabled（提示字讀得到）；換卡捲到卡片頂端時避開頂部狀態列 */
 .t-next[aria-disabled="true"] { opacity: .45; cursor: default; }
-.teach, .answers { scroll-margin-top: 120px; }
 .answers:focus, .t-title:focus, .g-out:focus { outline: none; }
 /* 「我要重來」：目錄最下面的次要按鈕，小字、虛線、不搶眼 */
 .self-reset { margin: 20px 0 0; text-align: center; }
@@ -321,3 +341,74 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .confirm-box .actions { justify-content: flex-end; }
 .btn.danger { border-color: var(--bad); color: var(--bad); }
 .self-reset .btn.danger { border-style: solid; }
+/* 排版精修 B1：底部按鈕列變矮（按鈕仍 48px）、上緣淡出；Tab 移動焦點時避開頂部狀態列和按鈕列 */
+.pager { padding-top: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+.pager .btn { min-height: var(--tap-min); }
+.pager::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 20px; background: linear-gradient(to top, var(--bg), rgba(18, 22, 42, 0)); pointer-events: none; }
+html { scroll-padding-top: 98px; scroll-padding-bottom: 88px; }   /* 自動捲動只靠這裡（不再跟 scroll-margin 疊加），頂端停在 HUD 正下方約 10～15px */
+/* 排版精修 P1 */
+.gopt.ok::after, .gopt.ng::after { margin-left: auto; padding-left: 12px; font-weight: 700; }   /* G-2：答對答錯不只靠顏色 */
+.gopt.ok::after { content: "✓"; content: "✓" / ""; color: var(--ok); }   /* 先寫一行給 Safari 17.4 以前 */
+.gopt.ng::after { content: "✗"; content: "✗" / ""; color: var(--bad); }
+.mitems > p { margin: 0; }   /* P-3：「全部配對完成」上下不留大空白 */
+label.check { display: grid; grid-template-columns: 26px minmax(0, 1fr); column-gap: 10px; align-items: start; min-height: var(--tap-min); margin: 0; padding: 8px 0; cursor: pointer; }   /* A3：勾選框 24px、整行可點 */
+.check input[type="checkbox"] { width: 24px; height: 24px; margin: 3px 0 0; accent-color: var(--fg); cursor: pointer; }
+.check > .step-no { grid-column: 2; }
+.answers .block { margin: 0; padding: 22px 0 6px; border-top: 1px dashed var(--line); }   /* A1：每一題上面一條虛線 */
+.answers .block .block { margin-top: 16px; padding: 0; border-top: 0; }
+.answers .block > p:first-child { margin-top: 0; font-weight: 700; }
+.answers .block > label:first-child:has(+ textarea, + select) { margin-top: 0; font-weight: 700; }   /* 含 :has() 的自己一條，舊瀏覽器只丟這條 */
+.pager .btn.primary { background: var(--panel-2); color: var(--fg); border-color: var(--fg); font-weight: 700; box-shadow: 0 4px 0 var(--bg-deep); }   /* B2：「下一關」降成外框，畫面上唯一的白底按鈕留給頁面裡的主要動作 */
+.pager .btn.primary:active:not(:disabled) { box-shadow: 0 1px 0 var(--bg-deep); }
+/* 排版精修 P2 */
+@media (max-width: 480px) {   /* G2：手機上的盒中盒變薄 */
+  .stage { padding: 14px 12px; }
+  .learn .t-card { padding: 12px 10px; }
+  .fcard { padding: 12px; }
+}
+.menu > p.step-no { font: 400 var(--fs-sm)/1.6 var(--font-sans); color: var(--fg-dim); letter-spacing: 0; }   /* M1 */
+.menu > .block .actions { justify-content: center; }   /* M2：附錄跟「我要重來」上下對齊 */
+.qh-main { align-self: center; }   /* Q1 */
+.qhead h2 { font-size: 26px; line-height: 1.3; }
+@media (max-width: 480px) { .qhead h2 { font-size: 22px; } }   /* Q1：手機寫在後面才生效 */
+@media (min-width: 600px) {   /* T1：上一張在左、下一張在右而且變寬 */
+  .t-card .actions { justify-content: space-between; }
+  .t-card .t-next { margin-left: auto; min-width: 14em; justify-content: center; }
+}
+.fb { gap: 10px; }   /* F4：標籤自成一行 */
+.tagl { display: block; width: fit-content; margin: 0 0 2px; line-height: 1.6; }
+.rrow { padding-left: calc(10px + 1.1em); text-indent: -1.1em; }   /* W2：✓／✗ 懸掛縮排 */
+.ask:not(:empty) { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }   /* A4：求救區自成一段 */
+.ask .actions { margin-top: 0; }
+.paper {   /* A5：紙卡底部淡淡陰影＝下面還有；捲到底陰影消失 */
+  background:
+    linear-gradient(var(--paper) 30%, rgba(245, 239, 225, 0)) top / 100% 24px no-repeat local,
+    linear-gradient(rgba(245, 239, 225, 0), var(--paper) 70%) bottom / 100% 24px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgba(27, 26, 23, .18), transparent) top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(27, 26, 23, .18), transparent) bottom / 100% 10px no-repeat scroll,
+    var(--paper);
+}
+.answers .block > p.step-no { font: 400 var(--fs-sm)/1.6 var(--font-sans); color: var(--fg-dim); }   /* A6 */
+.bucket .shape { margin-right: 6px; vertical-align: -1px; }   /* A7 */
+.block > .stage.demo { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 14px; align-items: start; padding: 16px; }   /* A8：示範卡小人在左、字在右 */
+.block > .stage.demo .pixel-wrap { grid-row: 1 / span 3; margin: 0; }
+.block > .stage.demo > :not(.pixel-wrap) { grid-column: 2; }
+.block > .stage.demo p { margin: 4px 0 10px; }
+.title-card .actions > span { flex-basis: 100%; order: 9; text-align: center; }
+.tc-name { text-wrap: balance; }   /* 長稱號（例：傳說級 AI 部門主管）兩行平均斷，不會只剩「管】」掉到第二行（清單 C2 補拍時看到的） */
+/* 字體與換行（James：「整體的字和段落的換行太難看」）：字級四級、中文標籤不用等寬字、段落不讓最後一行只剩一兩個字 */
+body { font-size: var(--fs-body); line-break: strict; }   /* 一般內文 17px、行高 1.75（theme 的 --lh-body）；標點不放行首 */
+p, label, .frow, .rrow, .mitem, .mchip, .t-q, .fh small, .q-main small { text-wrap: pretty; }   /* 不支援的瀏覽器就照舊 */
+h1, h2, h3, .t-title, .fh b, .mr-name, .tc-name, .q-name { text-wrap: balance; }
+.t-card { font-size: var(--fs-card); line-height: 1.7; }   /* 卡片內文 16px、行高 1.7 */
+.t-title { font-size: var(--fs-title); font-weight: 700; line-height: 1.4; }   /* 卡片標題 20px */
+.t-kicker, .t-count { font-size: var(--fs-kicker); }
+.fh b { font-size: var(--fs-body); }
+.fh small, .tagl, .mr-now, .q-reward, .rw-d, .mchip { font-size: var(--fs-label); }   /* 小標籤 14px */
+.fh small, .tagl, .q-reward, .rw-d, .mchip { font-weight: 400; }   /* 中文字型只載 400／700：原本的 500 改回 400（.mr-now 維持 700） */
+.t-intro { max-width: 36em; }
+.t-reveal p { max-width: 36em; }
+.answers .block > p { max-width: 36em; }
+.answers .block > label { max-width: 36em; }
+.t-q { max-width: 36em; }
+.rrow, .t-reveal b, .mchip { text-wrap: balance; }   /* 一到三行的短句：兩行平均分，不會只剩「什麼」兩個字掉到最後一行（360 實量） */
