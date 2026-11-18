@@ -379,7 +379,7 @@
       const msg = h("span", { "aria-live": "polite", class: "ok-msg" }, (ctx.st().done || {})[b.id] ? `✓ 已交件：過了 ${ctx.st().pass || 0} 題` : "");
       return h("div", { class: "block" }, h("label", {}, "鄰座唸你寫的題目、你自己打字、鄰座打分：你的 Gem 過了幾題？"), sel, actions(
         h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => { const q = ctx.done(b.id, { pass: Number(sel.value) }); report(ctx, msg, `✓ 已交件：過了 ${sel.value} 題`, q); }) }), "交件 EXP"), msg),
-        h("p", { class: "step-no" }, "過 4 題以上就升到 Lv.4 專員；沒過的題目，回家補進指令或參考資料"));
+        h("p", { class: "step-no" }, "過 4 題以上就升到 Lv.4 認證講師；沒過的題目，回家補進指令或參考資料"));
     },
     caught(b, ctx) {
       const saved0 = ((ctx.st().picks || {})[b.id]) || [];
@@ -435,7 +435,7 @@
       return wrap;
     },
     card(b, ctx) {
-      const f = [["gem", "專員（Gem 名稱）"], ["reviewer", "審查員（Skill 或 Gem，怎麼叫出來）"], ["where", "明天從哪裡打開"]];
+      const f = [["gem", "助教（Gem 名稱）"], ["reviewer", "審查員（Skill 或 Gem，怎麼叫出來）"], ["where", "明天從哪裡打開"]];
       const inputs = f.map(([k, l]) => { const i = h("input", { type: "text", "aria-label": l }); i.value = ((ctx.st().sheet || {}).card || {})[k] || ""; return [k, l, i]; });
       const msg = h("span", { "aria-live": "polite" });
       return h("div", { class: "block" }, h("p", {}, "我的小隊名片（設計單背面最上面）"), inputs.map(([k, l, i]) => h("label", {}, l, i)), actions(

@@ -102,7 +102,7 @@
     renderHero(p.lv, user);
     const pct = Math.round(p.ratio * 100);
     put(hud.l2, "（經驗值）"); put(hud.l3, `${pct}%`);   // 手機上只留「EXP 30%」，後面兩段用 CSS 藏起來
-    put(hud.l4, p.next ? `再完成幾件就升到 Lv.${p.next}` : "今天的目標達成：Lv.4 專員");   // 間距由 CSS 的 column-gap 負責（不塞全形空白，換行後才不會縮排）
+    put(hud.l4, p.next ? `再完成幾件就升到 Lv.${p.next}` : "今天的目標達成：Lv.4 認證講師");   // 間距由 CSS 的 column-gap 負責（不塞全形空白，換行後才不會縮排）
     const aria = `EXP（經驗值）${pct}%，${hud.l4.textContent}`;   // 兩段中間加逗號（畫面上的間距是 CSS 給的，唸出來會黏在一起）
     if (hud.bar.getAttribute ? hud.bar.getAttribute("aria-label") !== aria : true) hud.bar.setAttribute("aria-label", aria);
     const noKey = st.player ? `${st.player}|${st.team}` : (st.team ? "wait" : "");   // 號碼拆三段（手機上排兩行小牌子）；字沒變就不動 DOM
@@ -154,7 +154,7 @@
     });
     const msg = h("p", { "aria-live": "polite" });
     root.replaceChildren(banner(), h("section", { class: "stage" }, h("h2", {}, "報到"), h("p", {}, "左邊開這個網頁，右邊開 Gemini。"), h("label", {}, "你坐第幾桌？"), sel,
-      h("p", {}, "你今天用哪個帳號登入 Gemini？"), h("div", { class: "opts" }, accts), h("p", { class: "step-no" }, "Gem＝存好指令的專屬助理；Skill＝寫好的一套做事方法（SOP，標準作業流程），打 @ 叫出來"), h("button", { class: "btn primary", onclick: async e => {
+      h("p", {}, "你今天用哪個帳號登入 Gemini？"), h("div", { class: "opts" }, accts), h("p", { class: "step-no" }, "Gem＝存好指令的專屬助教；Skill＝寫好的一套做事方法（SOP，標準作業流程），打 @ 叫出來"), h("button", { class: "btn primary", onclick: async e => {
         const go = e.currentTarget;
         if (go.disabled) return;
         if (!acct) { msg.textContent = "先選帳號"; return; }
@@ -190,8 +190,8 @@
   const IDS = STAGES.map(s => s.id), menu = { el: null, h2: null, rows: {} };
   const tasksOf = id => LU.TASKS.filter(x => x.id.split(".")[0] === id);
   // ── 目錄方向 C（T8）：角色卡＋七套造型衣櫃＋每關徽章＋小格子。節點只建一次，之後只改字和 class；資料沒變就不碰 DOM ──
-  const UP = { s1: 2, s2: 3, s4: 4 };   // 做完這關換上哪一套（照 core.js MILESTONES：需求單、專員 Gem、考過 4 題）
-  const HOW = { 1: "第 1 關交完需求單就換上", 2: "第 2 關建好專員 Gem 就換上", 3: "第 4 關考過 4 題就換上" };
+  const UP = { s1: 2, s2: 3, s4: 4 };   // 做完這關換上哪一套（照 core.js MILESTONES：需求單、助教 Gem、考過 4 題）
+  const HOW = { 1: "第 1 關交完需求單就換上", 2: "第 2 關建好助教 Gem 就換上", 3: "第 4 關考過 4 題就換上" };
   const NS = "http://www.w3.org/2000/svg";
   const ICON = {   // 固定的小圖示（不吃使用者輸入），用 createElementNS 畫
     pin: ["none", "2.2", [["path", { d: "M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z" }], ["circle", { cx: 12, cy: 10, r: 2.2 }]]],
@@ -286,7 +286,7 @@
     hero.img.alt = `你的 AI 助理現在的樣子：Lv.${lv} ${L.name}`;
     if (user) onceAnim(hero.img, "pose");   // 自己交件升級那一下才跳
     put(hero.lv, `Lv.${lv}`); put(hero.name, L.name); put(hero.desc, L.desc);
-    hero.next.replaceChildren(...(nx <= 4 ? [avImg(nx, "sil"), h("span", {}, "下一套造型：", h("b", {}, `Lv.${nx} ${LU.LEVELS[nx - 1].name}`), `（${HOW[lv]}）`)] : [h("span", {}, "今天的目標達成：", h("b", {}, "Lv.4 專員"))]));
+    hero.next.replaceChildren(...(nx <= 4 ? [avImg(nx, "sil"), h("span", {}, "下一套造型：", h("b", {}, `Lv.${nx} ${LU.LEVELS[nx - 1].name}`), `（${HOW[lv]}）`)] : [h("span", {}, "今天的目標達成：", h("b", {}, "Lv.4 認證講師"))]));
     hero.closet.forEach(({ li, img }, k) => { const l = k + 1, lock = l > lv && l < 5; li.className = l >= 5 ? "demo" : l < lv ? "got" : l === lv ? "got cur" : "lock"; img.className = lock ? "sil" : ""; img.alt = `Lv.${l} ${LU.LEVELS[k].name}${lock ? "（還沒拿到）" : ""}`; });
     STAGES.forEach(s => { const r = menu.rows[s.id]; if (r && r.reward) { cls(r.reward, "got", lv >= UP[s.id]); cls(r.rimg, "sil", lv < UP[s.id]); } });
     Object.keys(heads).forEach(id => {   // 關卡頁的「這關解鎖」：拿到就變彩色、實線、「已解鎖」；自己交件升級那一下光環擴散一次

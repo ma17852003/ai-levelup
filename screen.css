@@ -27,7 +27,8 @@ body { font: 1.125rem/1.35 var(--font-sans); }
 .av { width: 4.5rem; height: 4.5rem; object-fit: contain; flex: none; }
 .lv-no { font: 800 1.25rem var(--font-mono); margin-top: .25rem; }
 .today .lv-no { color: var(--gold); } .demo .lv-no { color: var(--cool); }
-.lv-name { font-size: 1rem; color: var(--fg-dim); }
+.lv-name { font-size: 1rem; color: var(--fg-dim); white-space: nowrap; }
+@media (max-width: 1100px) { .lv-name { font-size: .875rem; } }   /* 2026-11-18 等級改名後最長 5 字：1024 投影機每欄只有約 72px，14px×5＝70px 才放得下一行 */
 .lv-track { flex: 1; min-height: 0; width: 70%; margin: .5rem 0; position: relative; }
 .demo .lv-track { visibility: hidden; }
 .lv-fill { position: absolute; left: 0; right: 0; bottom: 0; background: var(--gold); border-radius: 3px 3px 0 0; transition: height 600ms var(--ease-out); }

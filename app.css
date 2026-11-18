@@ -39,7 +39,8 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
   .hud .hud-no { flex-direction: column; flex-wrap: nowrap; align-items: flex-end; max-width: 40vw; }
   .hud-no .no-sep { display: none; }
 }
-@media (max-width: 400px) { .hud .crest { font-size: 16px; padding: 0 6px; } }   /* 360 寬最長的徽章＋「100%」才不會蓋到小人 （寫在 480 那段後面才生效） */
+@media (max-width: 400px) { .hud .crest { font-size: 16px; padding: 0 6px; } }
+@media (max-width: 340px) { .hud .crest { font-size: 14px; padding: 0 5px; } }   /* 320 寬：五字等級名＋EXP 還有餘裕 */   /* 360 寬最長的徽章＋「100%」才不會蓋到小人 （寫在 480 那段後面才生效） */
 .sync-bar { background: var(--panel-2); border: 1.5px solid var(--line-strong); border-radius: var(--r-card); padding: var(--sp-2) var(--sp-3); margin: var(--sp-2) 0; font-size: var(--fs-sm); }
 .sync-bar.hide { display: none; }
 .btn.small { min-height: var(--tap-min); font-size: var(--fs-sm); padding: 0 var(--sp-3); }
@@ -395,7 +396,7 @@ label.check { display: grid; grid-template-columns: 26px minmax(0, 1fr); column-
 .block > .stage.demo > :not(.pixel-wrap) { grid-column: 2; }
 .block > .stage.demo p { margin: 4px 0 10px; }
 .title-card .actions > span { flex-basis: 100%; order: 9; text-align: center; }
-.tc-name { text-wrap: balance; }   /* 長稱號（例：傳說級 AI 部門主管）兩行平均斷，不會只剩「管】」掉到第二行（清單 C2 補拍時看到的） */
+.tc-name { text-wrap: balance; }   /* 長稱號（例：傳說級 AI 處室主任）兩行平均斷，不會只剩「管】」掉到第二行（清單 C2 補拍時看到的） */
 /* 字體與換行（James：「整體的字和段落的換行太難看」）：字級四級、中文標籤不用等寬字、段落不讓最後一行只剩一兩個字 */
 body { font-size: var(--fs-body); line-break: strict; }   /* 一般內文 17px、行高 1.75（theme 的 --lh-body）；標點不放行首 */
 p, label, .frow, .rrow, .mitem, .mchip, .t-q, .fh small, .q-main small { text-wrap: pretty; }   /* 不支援的瀏覽器就照舊 */
@@ -412,3 +413,4 @@ h1, h2, h3, .t-title, .fh b, .mr-name, .tc-name, .q-name { text-wrap: balance; }
 .answers .block > label { max-width: 36em; }
 .t-q { max-width: 36em; }
 .rrow, .t-reveal b, .mchip { text-wrap: balance; }   /* 一到三行的短句：兩行平均分，不會只剩「什麼」兩個字掉到最後一行（360 實量） */
+@media (max-width: 359px) { .hero-lv, .hero-lv b { font-size: 20px; } }   /* 2026-11-18 等級改名：320～359 寬「Lv.1 熱心工讀生」一行放得下（寫在檔尾才蓋得過 ≤480 的 24px） */
