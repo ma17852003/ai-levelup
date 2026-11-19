@@ -147,20 +147,14 @@
   function seat(root) {
     const tables = Array.from({ length: 14 }, (_, i) => String(i + 1)).concat(Array.from({ length: 10 }, (_, i) => "線上" + (i + 1)));
     const sel = h("select", { "aria-label": "桌號" }, tables.map(x => h("option", { value: x }, /線上/.test(x) ? x.replace("線上", "線上第 ") + " 組" : `第 ${x} 桌`)));
-    let acct = "";
-    const ticks = [], accts = [["personal", "個人 Google 帳號（有 Skills）"], ["school", "學校帳號（做成 Gem）"]].map(([k, l]) => {
-      const tk = h("span", { class: "tick", "aria-hidden": "true" }, "○"); ticks.push(tk);
-      return h("button", { class: "btn opt", "aria-pressed": "false", onclick: e => { acct = k; accts.forEach((x, i) => { x.setAttribute("aria-pressed", "false"); ticks[i].textContent = "○"; }); e.currentTarget.setAttribute("aria-pressed", "true"); tk.textContent = "✓"; } }, tk, l);
-    });
     const msg = h("p", { "aria-live": "polite" });
     root.replaceChildren(banner(), h("section", { class: "stage" }, h("h2", {}, "報到"), h("p", {}, "左邊開這個網頁，右邊開 Gemini。"), h("label", {}, "你坐第幾桌？"), sel,
-      h("p", {}, "你今天用哪個帳號登入 Gemini？"), h("div", { class: "opts" }, accts), h("p", { class: "step-no" }, "Gem＝存好指令的專屬助教；Skill＝寫好的一套做事方法（SOP，標準作業流程），打 @ 叫出來"), h("button", { class: "btn primary", onclick: async e => {
+      h("p", { class: "step-no" }, "Gem＝存好指令的專屬助教，今天會建兩個：助教和審查員"), h("button", { class: "btn primary", onclick: async e => {
         const go = e.currentTarget;
         if (go.disabled) return;
-        if (!acct) { msg.textContent = "先選帳號"; return; }
         go.disabled = true;   // 連點只算一次
         msg.textContent = "入座中…";
-        st = Object.assign({}, st, { team: sel.value, acct, seatedAt: st.seatedAt || Date.now() }); save();
+        st = Object.assign({}, st, { team: sel.value, seatedAt: st.seatedAt || Date.now() }); save();
         const j = await API.join(sel.value);
         if (j) { st = Object.assign({}, st, { player: j.player, resetId: j.resetId }); save(); }   // 沒連上：player 維持 0，HUD 會提示，之後由輪詢補號
         start(true);
@@ -169,8 +163,9 @@
   // ── 九關 ──
   const stageEls = {};
   function renderBlock(b) {
-    if (b.type === "acct") return h("div", {}, (st.acct === "school" ? b.school : b.personal).map(renderBlock));
-    return R[b.type] ? R[b.type](b, ctx) : h("p", { class: "bad-msg" }, "未知元件 " + b.type);
+    if (!R[b.type]) return h("p", { class: "bad-msg" }, "未知元件 " + b.type);
+    const el = R[b.type](b, ctx);
+    return b.must ? markMust(el) : el;
   }
   function askBtn(s) {   // 課程標準第 10 項：問 Gemini（不串 API，複製一段帶課程脈絡的提示詞）
     const text = `我正在上「AI 團隊自己組團」研習的「${s.title}」這一關（${s.ppt}）。我卡在：（寫你卡在哪）。請用不懂技術的人聽得懂的話，一步一步教我。`;
@@ -214,6 +209,10 @@
   const pipsOf = n => h("span", { class: "pips", "aria-hidden": "true" }, Array.from({ length: n }, () => animEnd(h("i"), "pop")));
   function setPips(el, n, user) { Array.from(el.children).forEach((p, j) => { const on = j < n; if (user && on && !has(p, "on")) onceAnim(p, "pop"); cls(p, "on", on); }); }
   const hero = { img: null, lv: h("b"), name: h("span"), desc: h("p", { class: "hero-desc" }), next: h("p", { class: "hero-next" }), closet: [], shown: 0 };
+  // 新手路線（規格 20 B）：目錄每關一個標籤、必做題一個小標（放在題目那一行最前面）
+  const PATH_LABEL = { must: "必做", all: "全班一起", skip: "可跳過" };
+  const pathTag = s => PATH_LABEL[s.path] ? h("span", { class: "path-tag " + s.path }, PATH_LABEL[s.path]) : "";
+  function markMust(el) { const line = (el.children || [])[0] || el; line.prepend(h("span", { class: "must-tag" }, "必做")); return el; }
   function buildMenu() {
     menu.h2 = h("h2", { tabindex: "-1" }, "闖關目錄");
     hero.img = animEnd(avImg(LU.level(st)), "pose");   // 直接用目前等級的圖，不先抓一張 Lv.1
@@ -230,7 +229,7 @@
       const rimg = up ? avImg(up, "sil") : null, reward = up ? h("span", { class: "q-reward" }, rimg, "→ ", h("b", {}, `Lv.${up} ${LU.LEVELS[up - 1].name}`)) : "";
       const row = h("button", { class: "menu-row" + (s.demo ? " demo" : ""), "data-stage": s.id, onclick: () => go(s.id) },
         h("span", { class: "emblem", "aria-hidden": "true" }, emblemOf(s), h("span", { class: "em-ok" }, icon("check", 13))),
-        h("span", { class: "q-main" }, h("span", { class: "mr-no" }, /^s[1-6]$/.test(s.id) ? stageLabel(s.id) : ""), h("span", { class: "mr-name" }, s.title), h("small", {}, `${s.time}｜PPT ${s.ppt}`), reward),
+        h("span", { class: "q-main" }, h("span", { class: "mr-no" }, /^s[1-6]$/.test(s.id) ? stageLabel(s.id) : ""), h("span", { class: "mr-name" }, s.title, pathTag(s)), h("small", {}, `${s.time}｜PPT ${s.ppt}`), reward),
         h("span", { class: "mr-st" }, now, cnt, pips));
       now.hidden = true; menu.rows[s.id] = { row, cnt, now, pips, reward: reward || null, rimg };
       return h("li", { style: `--i:${k + 7}` }, row);
@@ -253,7 +252,7 @@
   function stageHead(s, h2) {
     const ts = tasksOf(s.id), cnt = h("b"), pips = pipsOf(ts.length), up = UP[s.id], here = IDS.indexOf(s.id);
     const left = h("div", { class: "qh-main" }, h("p", { class: "step-no" }, `${stageLabel(s.id)}｜${s.time}｜PPT ${s.ppt}`), h2,
-      ts.length ? h("p", { class: "qh-cnt" }, "這關完成 ", cnt, " 件 ", pips) : "");
+      s.tip ? h("p", { class: "path-tip" }, s.tip) : "", ts.length ? h("p", { class: "qh-cnt" }, "這關完成 ", cnt, " 件 ", pips) : "");
     let reward = null, rk = null, rimg = null;
     if (up) {
       const L = LU.LEVELS[up - 1]; rimg = avImg(up, "sil"); rk = h("span", { class: "rw-k" }, "這關解鎖");

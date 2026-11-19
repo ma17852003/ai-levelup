@@ -1,6 +1,7 @@
 // 關卡資料：跟 PPT v10 一頁一頁對齊。只放資料，畫面由 blocks.js 畫
+// path＝新手路線標籤（must 必做／all 全班一起／skip 可跳過）、tip＝關卡頂端提示、must＝必做小標（20_新手路線與審查員統一Gem_規格.md B）
 window.STAGES = [
-  { id: "s0", title: "報到", time: "13:40", ppt: "第 1～4 頁",
+  { id: "s0", title: "報到", time: "13:40", ppt: "第 1～4 頁", path: "must", tip: "跟不上的話，只做標「必做」的就好，一樣升得到 Lv.4。",
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
       { type: "guess", mins: 0.5, title: "先猜：第 1 格寫哪一種事最划算？",
         question: "等一下要寫「如果明天多一位助理，你第一件想丟給他的事」。寫哪一種，今天帶回去最用得上？",
@@ -18,8 +19,8 @@ window.STAGES = [
         reveal: { title: "你的那件事，就是今天的題目", text: "後面每一段都用它練習：交代它、做成助理、出考卷、最後為它組一支小隊。第 1 格寫一句就好，後面幾關會慢慢把它補完整。" } }
     ],
     blocks: [
-    { type: "text", id: "s0.first", field: "first", label: "如果明天多一位助理，你第一件想丟給他的事是什麼？（設計單第 1 格）", rows: 2, min: 4 } ] },
-  { id: "open", title: "開場：AI 的七個等級", time: "14:05", ppt: "第 5～9 頁",
+    { type: "text", id: "s0.first", must: true, field: "first", label: "如果明天多一位助理，你第一件想丟給他的事是什麼？（設計單第 1 格）", rows: 2, min: 4 } ] },
+  { id: "open", title: "開場：AI 的七個等級", time: "14:05", ppt: "第 5～9 頁", path: "all",
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
       { type: "flip", mins: 1, title: "投票前，先認得三個詞",
         intro: "等一下的投票會用到這三個詞。一張一張點開。",
@@ -46,7 +47,7 @@ window.STAGES = [
       { key: "G", label: "好幾個 AI 分工、互相檢查" } ] },
     { type: "vote", id: "open.agent", q: "看完 Deep Research（深入研究：AI 自己上網查很多資料寫成報告），它有沒有做到這四件事？", multi: true, options: [
       { key: "goal", label: "有目標" }, { key: "tool", label: "會用工具" }, { key: "steps", label: "自己決定步驟" }, { key: "start", label: "自己啟動" } ] } ] },
-  { id: "s1", title: "讓 AI 拷問你", time: "14:14", ppt: "第 10～14 頁",
+  { id: "s1", title: "讓 AI 拷問你", time: "14:14", ppt: "第 10～14 頁", path: "must",
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
       { type: "toggle", mins: 1, title: "交代一件事的 6 個開關",
         intro: "例子：請 AI 幫你寫校外教學的家長通知。一顆一顆打開，看 AI 寫出來的東西怎麼變；全開之後，再關掉一顆看看。", lead: "你對 AI 說：",
@@ -80,46 +81,43 @@ window.STAGES = [
     { type: "guess", id: "s1.guess", q: "同一句「幫我寫招生參訪日公告」，哪一種拿到的比較合用？",
       options: [{ key: "A", label: "直接丟給 AI" }, { key: "B", label: "先讓 AI 一題一題問你" }], answer: "B", sample: "sampleDirect",
       reveal: "直接丟，AI 只能猜：日期、對象、名額都可能自己編。先被問清楚，它才知道你要什麼。" },
-    { type: "copy", id: "s1.copy", label: "拷問提示詞：整段複製。你在第 1 格寫了的話，會自動帶進「（　）」裡", from: "grill", fill: "first" },
-    { type: "text", id: "s1.brief", field: "brief", label: "把 AI 整理的需求單重點貼回來（設計單第 2、3 格）", rows: 6, min: 30 },
-    { type: "copy", id: "s1.instr", label: "升級時刻①：在同一個對話打這句，把結果複製起來，下一關建 Gem 用", from: "toInstr", noOpen: true } ] },
-  { id: "s2", title: "做一個審查員", time: "14:40", ppt: "第 15～19 頁",
-    learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
-      { type: "flip", mins: 1, title: "四個麻煩，交給兩種東西",
-        intro: "用 AI 常碰到這四個麻煩。一張一張點開，最後揭曉它們各交給誰。",
+    { type: "copy", id: "s1.copy", must: true, label: "拷問提示詞：整段複製。你在第 1 格寫了的話，會自動帶進「（　）」裡", from: "grill", fill: "first" },
+    { type: "text", id: "s1.brief", must: true, field: "brief", label: "把 AI 整理的需求單重點貼回來（設計單第 2、3 格）", rows: 6, min: 30 },
+    { type: "copy", id: "s1.instr", must: true, label: "升級時刻①：在同一個對話打這句，把結果複製起來，下一關建 Gem 用", from: "toInstr", noOpen: true } ] },
+  { id: "s2", title: "做一個審查員", time: "14:40", ppt: "第 15～19 頁", path: "must",
+    learn: [   // 上課卡（2026-11-19 改：審查員統一做成第二個 Gem，課堂不提進階版；20_新手路線與審查員統一Gem_規格.md）
+      { type: "flip", mins: 1, title: "兩個 Gem，各管一段",
+        intro: "今天要建兩個 Gem。一張一張點開，看誰管哪一段。",
         cards: [
-          { label: "每次都要重講背景", zh: "麻煩一", analogy: "像每次找代課老師，都要從頭交代班上狀況", example: "每開一個新對話，都要再貼一次「你是招生組的公告寫手……」" },
-          { label: "同事也想用", zh: "麻煩二", analogy: "像你寫好的交接本，同事拿去就能接手", example: "你調好的助理，同事點開就能用，不用再教一次" },
-          { label: "同一套做法到處重貼", zh: "麻煩三", analogy: "像同一張檢查表，每位承辦人桌上都要影印一份", example: "審查的步驟，招生助理要貼一次，活動助理又要貼一次" },
-          { label: "好幾套做法一起用", zh: "麻煩四", analogy: "像辦活動時，同時翻場地借用和經費核銷兩本 SOP", example: "同一份公告，先潤稿，再審查" }
+          { label: "助教 Gem", zh: "照指令做出成果", analogy: "像熟悉業務的承辦人，交代一句就把初稿寫好", example: "用上一關複製的指令建好，問它「幫我寫參訪日公告」，它交一份初稿" },
+          { label: "審查員 Gem", zh: "拿原始資料對照找錯", analogy: "像送出前幫你逐字核對的細心同事，只圈出錯，不幫你改", example: "貼上助教的初稿和原始資料，它列一張問題表：日期、人數、地點哪裡對不上" },
+          { label: "你", zh: "看問題表，決定改不改", analogy: "像簽核公文的主管，最後一關一定是人", example: "問題表第 2 點要不要改，你說了算" }
         ],
-        reveal: { title: "麻煩一、二交給 Gem；麻煩三、四交給 Skill", text: "Gem 是一位專屬助教，從清單點它就叫得出來。Skill 是一本 SOP（標準作業流程）手冊：打 @ 叫出來（舊版是 /），說明寫得清楚，Gemini 也會自己判斷什麼時候用，好幾本還能疊著用。一句話：Gem 是一位員工，Skill 是他會的 SOP。等一下先用上一關複製的指令建你的助教 Gem，再做審查員。" } },
-      { type: "match", mins: 1, title: "你的帳號，審查員要做成什麼？",
-        intro: "審查員做成 Skill 還是 Gem，看你入座時選的帳號。先點一種情況，再點該怎麼做。",
+        reveal: { title: "一個做、一個抓錯、你決定", text: "Gem 就是存好指令的專屬助教，點它就叫得出來。今天建兩個：先用上一關複製的指令建助教，再用同一個方法建審查員，兩個都會在你的 Gem 清單裡。" } },
+      { type: "match", mins: 1, title: "這句話要貼給誰？",
+        intro: "先點一句話，再點它該交給誰。",
         targets: [
-          { id: "skill", label: "做成 Skill：設定 → Skills → 建立" },
-          { id: "gem", label: "做成第二個 Gem，取名「審查員」" },
-          { id: "log", label: "先去開「Gemini 活動記錄」" }
+          { id: "helper", label: "助教 Gem" },
+          { id: "reviewer", label: "審查員 Gem" },
+          { id: "you", label: "你自己決定" }
         ],
         items: [
-          { text: "個人 Google 帳號，設定裡看得到 Skills", ans: "skill", why: "個人帳號走 Skill。建好之後在對話打 @ 選它（舊版是 /）。" },
-          { text: "學校帳號", ans: "gem", why: "11 月 Skills 只開放個人帳號。學校帳號建一個審查員 Gem，效果一樣。" },
-          { text: "個人帳號，設定裡找不到 Skills", ans: "log", why: "先查是不是沒開活動記錄。開了之後對話會存在 Google 那邊，紅燈資料一樣不要貼。" },
-          { text: "開了活動記錄，還是沒有 Skills", ans: "gem", why: "不要卡在這裡，改走學校帳號那條路，建審查員 Gem。" }
+          { text: "幫我寫高中生參訪日的公告", ans: "helper", why: "要做出成果，交給助教。" },
+          { text: "幫我把這段草稿改成正式公文寫法", ans: "helper", why: "改寫也是做成果，交給助教。" },
+          { text: "這是公告和原始資料，幫我找出對不上的地方", ans: "reviewer", why: "對照原始資料找錯，是審查員的工作。" },
+          { text: "幫我檢查活動人數有沒有算錯", ans: "reviewer", why: "核對數字交給審查員。它只列問題，不改寫。" },
+          { text: "問題表第 2 點說日期寫錯了，要不要改？", ans: "you", why: "要不要改、怎麼改，你決定。最後一關永遠是人。" }
         ] }
     ],
     blocks: [
-    { type: "sort", id: "s2.sort", q: "這些是「員工」（Gem）還是「做法」（Skill＝SOP，標準作業流程：寫好的一套做事步驟）？", buckets: [
-      { key: "gem", label: "Gem＝一位員工", shape: "circle" }, { key: "skill", label: "Skill＝一本 SOP", shape: "square" } ],
-      cards: [ { label: "招生公告助理", bucket: "gem" }, { label: "審查的做法", bucket: "skill" }, { label: "公文潤稿的做法", bucket: "skill" },
-               { label: "活動企劃助理", bucket: "gem" }, { label: "學務問答助理", bucket: "gem" }, { label: "活動企劃檢查的做法", bucket: "skill" } ] },
-    { type: "check", items: [ { id: "s2.gem", label: "用上一關複製的指令，建好今天的助教 Gem，問一題拿到一段成果" } ] },
-    { type: "acct",
-      personal: [ { type: "copy", label: "審查員全文：設定 → Skills → 建立，指令欄整段貼上（名稱不收中文就打 reviewer）", from: "reviewer" },
-                  { type: "check", items: [ { id: "s2.reviewer", label: "審查員 Skill 建好了" }, { id: "s2.call", label: "在對話打 @（舊版是 /），叫出審查員，檢查助教的成果" } ] } ],
-      school: [ { type: "copy", label: "審查員全文：新增一個 Gem，取名「審查員」，指令欄整段貼上", from: "reviewer" },
-                { type: "check", items: [ { id: "s2.reviewer", label: "審查員 Gem 建好了" }, { id: "s2.call", label: "打開審查員 Gem，貼上助教的成果和原始資料" } ] } ] } ] },
-  { id: "s3", title: "AI 怎麼找資料", time: "14:55", ppt: "第 20～23 頁",
+    { type: "sort", id: "s2.sort", q: "這件事是助教做，還是審查員做？", buckets: [
+      { key: "helper", label: "助教：做出成果", shape: "circle" }, { key: "reviewer", label: "審查員：對照找錯", shape: "square" } ],
+      cards: [ { label: "寫招生公告初稿", bucket: "helper" }, { label: "對照簡章檢查日期", bucket: "reviewer" }, { label: "把草稿改成公文寫法", bucket: "helper" },
+               { label: "檢查人數算得對不對", bucket: "reviewer" }, { label: "回答請假規定", bucket: "helper" }, { label: "列出跟原始資料對不上的地方", bucket: "reviewer" } ] },
+    { type: "check", must: true, items: [ { id: "s2.gem", label: "用上一關複製的指令，建好今天的助教 Gem，問一題拿到一段成果" } ] },
+    { type: "copy", must: true, label: "審查員全文：再新增一個 Gem，取名「審查員」，指令欄整段貼上", from: "reviewer" },
+    { type: "check", must: true, items: [ { id: "s2.reviewer", label: "審查員 Gem 建好了" }, { id: "s2.call", label: "打開審查員 Gem，貼上助教的成果和原始資料" } ] } ] },
+  { id: "s3", title: "AI 怎麼找資料", time: "14:55", ppt: "第 20～23 頁", path: "skip", tip: "跟不上可以先跳過這關，直接去第 4 關，升級不受影響。",
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
       { type: "flip", mins: 1, title: "AI 找資料的三種方法",
         intro: "同一櫃規定，AI 有三種讀法。一張一張點開。",
@@ -152,7 +150,7 @@ window.STAGES = [
       reveal: "2026-11-10 講師實測：向量資料庫預設設定答「查不到」，調整後從午休規定推成「班導師核准」，錯。整包讀答對但出處寫錯；目錄＋翻書答對，出處還是要自己點開對。" },
     { type: "copy", label: "目錄格式範例", from: "tocExample" },
     { type: "text", id: "s3.toc", field: "toc", label: "寫你自己的參考資料目錄，3 行（設計單第 4 格）：檔名｜管什麼｜給誰｜關鍵字", rows: 4, min: 15 } ] },
-  { id: "s4", title: "幫你的 Gem 出考卷", time: "15:06", ppt: "第 25～29 頁",
+  { id: "s4", title: "幫你的 Gem 出考卷", time: "15:06", ppt: "第 25～29 頁", path: "must",
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
       { type: "match", mins: 1, title: "這題在考哪一種陷阱？",
         intro: "等一下你要照這五種，各寫一題考你的 Gem：鄰座唸題、你打字、鄰座打分，過 4 題升到 Lv.4。先點一題，再點它屬於哪一種。",
@@ -183,14 +181,14 @@ window.STAGES = [
     blocks: [
     { type: "guess", id: "s4.break", q: "同一題，拿掉參考資料再問一次，AI 會怎樣？", options: [{ key: "A", label: "說「查不到」" }, { key: "B", label: "編一個聽起來很對的答案" }], answer: "B", sample: "sampleNoDoc",
       reveal: "沒給資料，AI 通常不會說不知道。所以要給資料，還要考試。" },
-    { type: "text", id: "s4.write", field: "traps", label: "照五種陷阱，各寫一題考你的 Gem（設計單第 5 格）。例子見下方紙卡", rows: 6, min: 30 },
+    { type: "text", id: "s4.write", must: true, field: "traps", label: "照五種陷阱，各寫一題考你的 Gem（設計單第 5 格）。例子見下方紙卡", rows: 6, min: 30 },
     { type: "copy", label: "五種陷阱題範例（查規定型／寫東西型）", from: "traps" },
-    { type: "pass", id: "s4.pass" },
+    { type: "pass", id: "s4.pass", must: true },
     { type: "sort", id: "s4.light", q: "這些資料能不能交給 AI？", buckets: [
       { key: "g", label: "綠燈：可以給", shape: "circle" }, { key: "y", label: "黃燈：處理過再給", shape: "triangle" }, { key: "r", label: "紅燈：不能給", shape: "square" } ],
       cards: [ { label: "學校公開的請假辦法", bucket: "g" }, { label: "課程大綱", bucket: "g" }, { label: "會議紀錄（有同事名字）", bucket: "y" },
                { label: "內部活動企劃", bucket: "y" }, { label: "學生成績單", bucket: "r" }, { label: "全班身分證字號", bucket: "r" } ] } ] },
-  { id: "s5", title: "組一支 AI 小隊", time: "15:22", ppt: "第 30～35 頁",
+  { id: "s5", title: "組一支 AI 小隊", time: "15:22", ppt: "第 30～35 頁", path: "all",
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
       { type: "toggle", mins: 1, title: "一支小隊的 4 個開關",
         intro: "一份活動資料，要變成一則正式公告。一顆一顆打開；全開之後，關掉「審查員」看看會怎樣。", lead: "這份資料會經過：",
@@ -212,7 +210,7 @@ window.STAGES = [
     { type: "caught", id: "s5.caught", items: ["星期對不上（12/5 是星期六）", "人數對不上（3 × 25 = 75 人，不是 60）", "兩個報到地點（圖書館／行政大樓）"] },
     { type: "check", items: [ { id: "s5.team", label: "幫我的助教配好審查員，跑過一次：助教做 → 審查員抓錯 → 我決定" } ] },
     { type: "card", id: "s5.card" } ] },
-  { id: "s6", title: "講師示範：Lv.5～7", time: "15:43", ppt: "第 36～38 頁", demo: true,
+  { id: "s6", title: "講師示範：Lv.5～7", time: "15:43", ppt: "第 36～38 頁", path: "all", demo: true,
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
       { type: "flip", mins: 1, title: "看示範，每一級盯一件事",
         intro: "等一下講師會秀四樣成品。一張一張點開，先知道每一樣要看哪裡。",
@@ -244,7 +242,7 @@ window.STAGES = [
       { lv: 5, title: "Canvas 小工具：抽籤分組器", url: "https://share.gemini.google/SUv6NIvU50jb", note: "講師用 Gemini Canvas 做的，點開就能玩（資料只存在你的瀏覽器）" },
       { lv: 6, title: "排程任務：每週一自己整理的研究報告", url: "", note: "講師示範畫面" },
       { lv: 7, title: "講師的 AI 部門（3D 辦公室）", url: "https://ma17852003.github.io/jamesaistartup-site/office/?demo=1", note: "80 位 AI 員工分部門上班" } ] } ] },
-  { id: "end", title: "收尾：你升了幾級", time: "15:51", ppt: "第 39～42 頁",
+  { id: "end", title: "收尾：你升了幾級", time: "15:51", ppt: "第 39～42 頁", path: "must",
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
       { type: "match", mins: 1, title: "這是 Lv 幾？",
         intro: "等一下要再選一次你現在在哪一級。先練習：點一個做法，再點它是哪一級。",
@@ -270,7 +268,7 @@ window.STAGES = [
         intro: "三週計畫一週一件事。一張一張點開。",
         cards: [
           { label: "第 1 週", zh: "給同事用", analogy: "像新同事上工第一週，先讓老同事帶著問", example: "請一位同事照平常的說法問 5 題，問倒的題目補進參考資料" },
-          { label: "第 2 週", zh: "加第三位隊員", analogy: "像小組人手夠了，再補一位專門的人", example: "從 Skill 包再加一份，例如公文潤稿或活動企劃檢查" },
+          { label: "第 2 週", zh: "加第三位隊員", analogy: "像小組人手夠了，再補一位專門的人", example: "從附錄再拿一份做法，例如公文潤稿或活動企劃檢查，貼進一個新的 Gem" },
           { label: "第 3 週", zh: "跑一件真的工作", analogy: "像演練完，正式上場辦一次活動", example: "挑一件真的工作，讓小隊從頭跑到尾，交接只靠寫下來的東西" }
         ],
         reveal: { title: "第 1 週那格，現在就寫下同事的名字", text: "寫下名字的人，回家真的會做。三週跑順了想擴編，看附錄 M：先招人、再寫 SOP、再分工。" } }
@@ -281,7 +279,7 @@ window.STAGES = [
     { type: "vote", id: "end.self", q: "現在的你，用 AI 做到 A～G 哪一種了？（跟開場比一比）", multi: false, options: [
       { key: "1", label: "A 問問題" }, { key: "2", label: "B 常用提示詞" }, { key: "3", label: "C 自己的 Gem" }, { key: "4", label: "D 同事也在用" },
       { key: "5", label: "E 小工具" }, { key: "6", label: "F 自己會上班" }, { key: "7", label: "G 好幾個 AI 分工" } ] },
-    { type: "plan", id: "end.plan" },
+    { type: "plan", id: "end.plan", must: true },
     { type: "title" },   // 結業稱號＋積分（不算任務、不給經驗值）
-    { type: "link", href: "appendix.html", label: "打開附錄（Skill 包、提示詞卡、名詞卡全文）" } ] }
+    { type: "link", href: "appendix.html", label: "打開附錄（做法包、提示詞卡、名詞卡全文）" } ] }
 ];

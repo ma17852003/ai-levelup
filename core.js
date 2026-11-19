@@ -119,7 +119,7 @@
       fast, early, late, median, ask: Number(st.askN) || 0,
       lateSeat: !!(st.seatedAt && first && sidx(first) > sidx("open") && Math.abs(seen[first] - st.seatedAt) <= 60000),   // 入座時講師已經在開場之後
       copiedAll: COPY_CARDS.every(k => copied[k]), manual: !!st.manualCopy, sortN: k => Number(sn[k]) || 0,
-      role: done["s5.relay"] ? st.relayRole : "", acct: st.acct,
+      role: done["s5.relay"] ? st.relayRole : "",
       plan3: ["w1", "w2", "w3"].every(k => chars(plan[k]) >= 10), card3: ["gem", "reviewer", "where"].every(k => chars(card[k]) > 0)
     };
   }
@@ -157,8 +157,8 @@
     [30, 4, "接力最速寫手", "第一棒就由你開跑，後面的人都靠你", f => f.role === "A"],
     [31, 4, "鐵面審查員", "別人寫的你負責挑毛病，這個工作很適合你", f => f.role === "B"],
     [32, 4, "排版潔癖患者", "最後一棒交給你，表格一定對得整整齊齊", f => f.role === "C"],
-    [33, 4, "Skills 魔法師", "打個 @ 就能叫出審查員，魔法師就是你", f => f.acct === "personal" && f.done["s2.reviewer"]],
-    [34, 4, "Gem 收藏家", "一個人養了兩個 Gem，下一步是開動物園", f => f.acct === "school" && f.done["s2.gem"] && f.done["s2.reviewer"]],
+    [33, 4, "錯字沒機會出門", "助教寫完先給審查員看，錯字沒機會出門", f => f.done["s2.call"]],   // 2026-11-19 審查員統一做成 Gem：原「Skills 魔法師」（個人帳號）換掉
+    [34, 4, "Gem 收藏家", "一個人養了兩個 Gem，下一步是開動物園", f => f.done["s2.gem"] && f.done["s2.reviewer"] && !f.done["s2.call"]],   // 2026-11-19：不看帳號；跟 #33 互斥（叫過審查員就歸 #33），一人最多中一個，才不會擠掉其他主稱號
     [35, 4, "三週計畫通", "三週計畫寫得清清楚楚，校長看了會想抄", f => f.plan3],
     [36, 4, "名片設計師", "你的 AI 小隊已經有名片了，比很多人還正式", f => f.card3],
     [37, 4, "全勤模範生", "25 件任務一件不漏，你是今天的模範生", f => f.all],

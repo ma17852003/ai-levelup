@@ -435,14 +435,14 @@
       return wrap;
     },
     card(b, ctx) {
-      const f = [["gem", "助教（Gem 名稱）"], ["reviewer", "審查員（Skill 或 Gem，怎麼叫出來）"], ["where", "明天從哪裡打開"]];
+      const f = [["gem", "助教（Gem 名稱）"], ["reviewer", "審查員（Gem 名稱）"], ["where", "明天從哪裡打開"]];
       const inputs = f.map(([k, l]) => { const i = h("input", { type: "text", "aria-label": l }); i.value = ((ctx.st().sheet || {}).card || {})[k] || ""; return [k, l, i]; });
       const msg = h("span", { "aria-live": "polite" });
       return h("div", { class: "block" }, h("p", {}, "我的小隊名片（設計單背面最上面）"), inputs.map(([k, l, i]) => h("label", {}, l, i)), actions(
         h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => { ctx.sheet("card", Object.fromEntries(inputs.map(([k, , i]) => [k, i.value]))); ctx.done(b.id); msg.className = "ok-msg"; msg.textContent = "✓ 已存名片"; }) }), "存名片"), msg));
     },
     plan(b, ctx) {
-      const w = [["w1", "第 1 週：把小隊給哪位同事試用？寫他的名字"], ["w2", "第 2 週：從 Skill 包再加哪一份？"], ["w3", "第 3 週：挑哪一件真的工作讓小隊跑一次？"]];
+      const w = [["w1", "第 1 週：把小隊給哪位同事試用？寫他的名字"], ["w2", "第 2 週：從附錄再拿哪一份做法，做成新的 Gem？"], ["w3", "第 3 週：挑哪一件真的工作讓小隊跑一次？"]];
       const inputs = w.map(([k, l]) => { const i = h("input", { type: "text", "aria-label": l }); i.value = ((ctx.st().sheet || {}).plan || {})[k] || ""; return [k, l, i]; });
       const msg = h("span", { "aria-live": "polite" });
       return h("div", { class: "block" }, inputs.map(([k, l, i]) => h("label", {}, l, i)), actions(

@@ -414,3 +414,11 @@ h1, h2, h3, .t-title, .fh b, .mr-name, .tc-name, .q-name { text-wrap: balance; }
 .t-q { max-width: 36em; }
 .rrow, .t-reveal b, .mchip { text-wrap: balance; }   /* 一到三行的短句：兩行平均分，不會只剩「什麼」兩個字掉到最後一行（360 實量） */
 @media (max-width: 359px) { .hero-lv, .hero-lv b { font-size: 20px; } }   /* 2026-11-18 等級改名：320～359 寬「Lv.1 熱心工讀生」一行放得下（寫在檔尾才蓋得過 ≤480 的 24px） */
+/* 新手路線（20_新手路線與審查員統一Gem_規格.md B）：目錄標籤、必做小標、關卡頂端提示。色盲靠字分得出來（必做／全班一起／可跳過） */
+.path-tag, .must-tag { display: inline-block; padding: 0 8px; border-radius: var(--r-pill); font: 700 var(--fs-xs)/1.6 var(--font-sans); white-space: nowrap; vertical-align: 2px; }
+.path-tag { margin-left: 8px; }
+.must-tag { margin-right: 8px; }
+.path-tag.must, .must-tag { border: 1.5px solid var(--gold); color: var(--gold); }   /* 金框不金底：金底保留給「給經驗值」（theme.css） */
+.path-tag.all, .path-tag.skip { border: 1px solid var(--line-strong); color: var(--fg-dim); }
+.path-tip { margin: 6px 0 0; padding-left: 10px; border-left: 3px solid var(--gold); font: 700 var(--fs-sm)/1.6 var(--font-sans); color: var(--fg); max-width: 36em; }
+label.check > .must-tag { grid-column: 2; justify-self: start; margin: 0 0 2px; }   /* 勾選題：小標放在文字那一欄的上面，不擠進勾選框那一欄 */
