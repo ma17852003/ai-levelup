@@ -114,8 +114,8 @@ window.STAGES = [
       { key: "helper", label: "助教：做出成果", shape: "circle" }, { key: "reviewer", label: "審查員：對照找錯", shape: "square" } ],
       cards: [ { label: "寫招生公告初稿", bucket: "helper" }, { label: "對照簡章檢查日期", bucket: "reviewer" }, { label: "把草稿改成公文寫法", bucket: "helper" },
                { label: "檢查人數算得對不對", bucket: "reviewer" }, { label: "回答請假規定", bucket: "helper" }, { label: "列出跟原始資料對不上的地方", bucket: "reviewer" } ] },
-    { type: "check", must: true, items: [ { id: "s2.gem", label: "用上一關複製的指令，建好今天的助教 Gem，問一題拿到一段成果" } ] },
-    { type: "copy", must: true, label: "審查員全文：再新增一個 Gem，取名「審查員」，指令欄整段貼上", from: "reviewer" },
+    { type: "check", must: true, items: [ { id: "s2.gem", label: "用上一關複製的指令，建好今天的助教 Gem（指令貼進「使用說明」那一格），問一題拿到一段成果" } ] },
+    { type: "copy", must: true, label: "審查員全文：再新增一個 Gem，取名「審查員」，整段貼進「使用說明」那一格", from: "reviewer" },
     { type: "check", must: true, items: [ { id: "s2.reviewer", label: "審查員 Gem 建好了" }, { id: "s2.call", label: "打開審查員 Gem，貼上助教的成果和原始資料" } ] } ] },
   { id: "s3", title: "AI 怎麼找資料", time: "14:55", ppt: "第 20～23 頁", path: "skip", tip: "跟不上可以先跳過這關，直接去第 4 關，升級不受影響。",
     learn: [   // 上課卡（17_先教學後作答規格.md 逐字搬來）
