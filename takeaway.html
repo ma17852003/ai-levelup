@@ -3,10 +3,10 @@
 <title>我的 AI 團隊設計單</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=optional" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=optional"></noscript>
-<link rel="stylesheet" href="theme.css?v=202611190856"><link rel="stylesheet" href="app.css?v=202611190856">
+<link rel="stylesheet" href="theme.css?v=202611191039"><link rel="stylesheet" href="app.css?v=202611191039">
 <style>
   .sheet { max-width: 794px; margin: 0 auto; padding: var(--sp-4); }
-  .bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-4) 0; }
+  .tk-bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-4) 0; }
   .head { display: flex; gap: var(--sp-4); align-items: center; border-bottom: 2px solid var(--line-strong); padding-bottom: var(--sp-3); }
   .head h1 { margin: 0; font-size: var(--fs-xl); }
   .cell { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; }
@@ -18,6 +18,10 @@
   .rows li { margin: var(--sp-1) 0; }
   .rows b { display: inline-block; min-width: 9.5em; }
   .title-line { font-weight: 700; font-size: var(--fs-lg); }
+  .tk-qr { margin: 0 0 0 auto; flex: none; text-align: center; }   /* 標題列最右邊：課後掃了看附錄 */
+  .tk-qr img { display: block; width: 123px; height: auto; aspect-ratio: 1; background: #fff; image-rendering: pixelated; }
+  .tk-qr figcaption { font-size: var(--fs-sm); line-height: 1.4; white-space: pre; }
+  @media screen and (max-width: 560px) { .tk-qr { display: none; } }   /* 手機螢幕上會把標題擠成一條，而且手機掃不到自己；列印（含手機存 PDF）照樣印 */
   @page { size: A4 portrait; margin: 12mm; }
   @media print {
     body { background: #fff; color: #000; font-size: 11pt; line-height: 1.5; }
@@ -27,10 +31,11 @@
     .cell { background: #fff; border: 1px solid #555; color: #000; padding: 6px 10px; margin: 6px 0; }
     .empty { color: #555; }
     .avatar { border-radius: 0; }
+    .tk-qr img { width: 30mm; }   /* 印出來 3 公分見方，手機好掃 */
   }
 </style></head>
 <body><main class="sheet" id="sheet"></main>
-<script src="core.js?v=202611190856"></script><script src="pixel.js?v=202611190856"></script><script src="avatar.js?v=202611190856"></script>
+<script src="core.js?v=202611191039"></script><script src="pixel.js?v=202611191039"></script><script src="avatar.js?v=202611191039"></script>
 <script>
 (function () {
   const root = document.getElementById("sheet");
@@ -38,7 +43,7 @@
   const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   let st = null, blocked = false;
   try { st = JSON.parse(localStorage.getItem("lu-st-" + s) || "null"); } catch (e) { st = null; blocked = true; }
-  const bar = h("div", "bar noprint"), btn = h("button", "btn submit", "列印／存成 PDF");
+  const bar = h("div", "tk-bar noprint"), btn = h("button", "btn submit", "列印／存成 PDF");
   btn.addEventListener("click", async () => {   // 先等字型載好再印（最多 1.5 秒；沒有 document.fonts 或逾時就照印）
     const f = document.fonts;
     if (f && f.ready) await Promise.race([f.ready.catch(() => {}), new Promise(r => setTimeout(r, 1500))]);
@@ -57,7 +62,12 @@
   const tt = st.claim && LU.TITLES.find(x => x.id === st.claim.main);   // 收尾關領過稱號才印（積分最後才揭曉）
   if (tt) t.append(h("p", "title-line", `結業稱號：【${tt.name}】｜總積分 ${Number((st.claim.score || {}).total) || 0}`));
   const nm = n => (LU.LEVELS[n - 1] ? `Lv.${n} ${LU.LEVELS[n - 1].name}` : "（還沒填）");
-  head.append(AVATAR.el(lv, 96), t); root.append(head);
+  const APPENDIX = "https://ma17852003.github.io/ai-levelup/appendix.html";   // 跟 img/qr-appendix.png 同一個網址（tools/gen_qr.py 產；換網址兩邊一起改）
+  const qr = h("figure", "tk-qr"), qrImg = h("img");
+  qrImg.onerror = () => qr.remove();   // 圖載不到（離線／404）就整塊拿掉，不印破圖示
+  qrImg.setAttribute("src", "img/qr-appendix.png"); qrImg.setAttribute("alt", "附錄 QR Code（" + APPENDIX + "）");
+  qr.append(qrImg, h("figcaption", "", "手機掃這裡\n看課後附錄"));
+  head.append(AVATAR.el(lv, 96), t, qr); root.append(head);
   function cell(title, value, emptyText) {
     const txt = typeof value === "string" ? value.trim() : "", c = h("section", "cell" + (txt.length < 160 ? " short" : "")); c.append(h("h2", "", title));
     c.append(txt ? h("div", "val", txt) : h("div", "empty", emptyText || "（這格還沒寫）"));
