@@ -84,7 +84,11 @@
     left.append(R.levels, R.votes, R.relay, R.titles);
 
     // 右欄：成就牆
-    const ach = h("aside", "ach"); ach.append(h("h3", "", "全班成就牆"), h("div", "ach-sub", "不列名字"));
+    // 右欄最上面：闖關網頁 QR（2026-11-19 James）。圖由 tools/gen_qr.py 產生，換短網址要重產；靜態節點，render 不碰它
+    const qr = h("div", "ach-qr"), qrImg = h("img", "qr-img");
+    qrImg.setAttribute("src", "img/qr-entry.png"); qrImg.setAttribute("alt", "闖關網頁 QR Code（" + SHORT_URL + "）");
+    qr.append(qrImg, h("div", "qr-cap", "手機掃這裡\n進闖關網頁"));
+    const ach = h("aside", "ach"); ach.append(qr, h("h3", "", "全班成就牆"), h("div", "ach-sub", "不列名字"));
     const list = h("div", "ach-list"); R.ach = {};
     LU.ACH.forEach(a => { const r = barRow(a.name); R.ach[a.id] = r; list.append(r); });
     ach.append(list);

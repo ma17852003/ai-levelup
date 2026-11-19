@@ -179,3 +179,15 @@ body { font: 1.125rem/1.35 var(--font-sans); }
 .wt-name { font-size: 1.375rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wt-n { flex: none; font: 800 1.5rem var(--font-mono); }
 @media (orientation: portrait) { .top { flex-wrap: wrap; row-gap: .25rem; } .t-claim { order: 3; } }   /* 直式：「已領取」自己一行，關卡名不被擠掉 */
+/* 右欄最上面的闖關網頁 QR（2026-11-19）：白底留白才掃得到；寬＝畫面高度 22%（1080 高約 238px），最小 7rem */
+.ach-qr { flex: none; display: flex; align-items: center; gap: 1rem; padding-bottom: .875rem; margin-bottom: .75rem; border-bottom: 1px solid var(--line); }
+.qr-img { flex: none; width: clamp(7rem, 22vh, 14rem); height: auto; aspect-ratio: 1; background: #fff; border-radius: .5rem; image-rendering: pixelated; }
+.qr-cap { font-size: 1.125rem; font-weight: 700; line-height: 1.4; white-space: pre; color: var(--fg); }   /* 兩行各自不換行，避免斷成「手機掃這／裡」 */
+/* 直式：右欄變成底下一條，QR 放左邊、成就牆在右 */
+@media (orientation: portrait) {
+  .ach { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); column-gap: 1rem; }
+  .ach-qr { grid-column: 1; grid-row: 1 / -1; flex-direction: column; justify-content: center; gap: .375rem; padding: 0 1rem 0 0; margin: 0; border-bottom: 0; border-right: 1px solid var(--line); }
+  .ach > h3 { grid-column: 2; grid-row: 1; } .ach > .ach-sub { grid-column: 2; grid-row: 2; } .ach > .ach-list { grid-column: 2; grid-row: 3; }   /* 列寫死：收尾關把 .ach-sub 藏起來時，成就牆還是撐滿第 3 列 */
+  .qr-img { width: clamp(6rem, 13vh, 12rem); }
+  .qr-cap { font-size: 1rem; text-align: center; }
+}
