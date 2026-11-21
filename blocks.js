@@ -265,6 +265,35 @@
     wrap.restart = () => { i = 0; show(); };
     return wrap;
   }
+  // 複製三招（2026-11-21 線上測試：LINE／FB 內建瀏覽器常不給 clipboard 權限）：
+  // ① navigator.clipboard ② 隱藏 textarea＋execCommand("copy") ③ 都不行回 false，呼叫端再用 selectText 幫學員選好文字
+  const CLIP_WAIT = 1500;   // 有些內建瀏覽器的 clipboard 不回應也不報錯：最多等 1.5 秒就換第二招，按鈕不會默默沒反應
+  async function copyText(text) {
+    try {
+      await new Promise((ok, no) => {
+        const tm = setTimeout(() => no(new Error("timeout")), CLIP_WAIT);
+        navigator.clipboard.writeText(text).then(() => { clearTimeout(tm); ok(); }, e => { clearTimeout(tm); no(e); });
+      });
+      return true;
+    } catch (e) { /* 換第二招（沒有 navigator.clipboard 也會走到這裡） */ }
+    if (typeof document.execCommand !== "function" || !document.body) return false;
+    const back = document.activeElement;   // 複製完把焦點還回按鈕，鍵盤操作的人不會迷路
+    let ta = null;
+    try {
+      ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", "");
+      ta.style.position = "absolute"; ta.style.left = "-9999px";   // 放在目前捲動位置旁邊（不用 fixed top:0），iPhone 才不會跳回頁首
+      ta.style.top = ((window.pageYOffset || 0) | 0) + "px";
+      document.body.append(ta); ta.select();
+      if (ta.setSelectionRange) ta.setSelectionRange(0, text.length);   // iPhone：readonly 的 textarea 光 select() 選不到字（實機才驗得到）
+      return !!document.execCommand("copy");
+    } catch (e) { return false; } finally {
+      try { if (ta && ta.remove) ta.remove(); } catch (e) { /* 拿不掉就算了 */ }   // 丟錯也要拿掉，不然隱形 textarea 會一直留在頁面上
+      try { if (back && back.focus) back.focus({ preventScroll: true }); } catch (e) { /* 還不回去就算了 */ }
+    }
+  }
+  function selectText(el) {
+    try { const r = document.createRange(); r.selectNodeContents(el); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) { /* 選不了就算了，學員自己反白 */ }
+  }
   const R = {
     copy(b, ctx) {
       const get = () => {
@@ -276,11 +305,11 @@
       if (b.fill) watchers.push({ el: paper, f: () => { const t = get(); if (paper.textContent !== t) paper.textContent = t; } });
       return h("div", { class: "block" }, h("p", {}, b.label), paper, actions(
         h("button", { class: "btn copy", onclick: async e => {
-          const btn = e.currentTarget; let ok = false;
-          try { await navigator.clipboard.writeText(get()); ok = true; } catch (e) { ok = false; }
+          const btn = e.currentTarget, ok = await copyText(get());
           const copied = () => Object.assign({}, ctx.st().copied, { [b.from]: true });   // 稱號用：哪幾張紙卡複製過
           if (ok) { msg.textContent = "✓ 已複製，到 Claude 貼上"; flash(btn, "✓ 已複製", 3000); manual.replaceChildren(); ctx.set({ copied: copied() }); if (b.id) ctx.done(b.id); return; }
-          msg.textContent = "複製沒成功，請手動選取上面文字複製";   // 失敗不算完成
+          selectText(paper);
+          msg.textContent = "複製沒成功，已幫你選好上面的文字：電腦按 Ctrl+C（Mac 按 ⌘+C），手機在反白處長按，選「複製」";   // 失敗不算完成
           manual.replaceChildren(h("button", { class: "btn small manual", onclick: () => { ctx.set({ copied: copied(), manualCopy: true }); if (b.id) ctx.done(b.id); msg.textContent = "✓ 已記錄手動複製"; manual.replaceChildren(); } }, "我已手動複製"));
         } }, "複製"), b.noOpen ? "" : claudeLink(), msg, manual));
     },
@@ -380,7 +409,7 @@
       const msg = h("span", { "aria-live": "polite", class: "ok-msg" }, (ctx.st().done || {})[b.id] ? `✓ 已交件：過了 ${ctx.st().pass || 0} 題` : "");
       return h("div", { class: "block" }, h("label", {}, "鄰座唸你寫的題目、你在自己的助教專案打字、鄰座打分：你的助教過了幾題？"), sel, actions(
         h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => { const q = ctx.done(b.id, { pass: Number(sel.value) }); report(ctx, msg, `✓ 已交件：過了 ${sel.value} 題`, q); }) }), "交件 EXP"), msg),
-        h("p", { class: "step-no" }, "過 4 題以上就升到 Lv.4 認證講師；沒過的題目，回家補進指令或參考資料"));
+        h("p", { class: "step-no" }, "過 4 題以上就升到 Lv.4 認證講師；沒過的題目：改專案的指令再考一次，來不及就回家做"));
     },
     caught(b, ctx) {
       const saved0 = ((ctx.st().picks || {})[b.id]) || [];
@@ -507,5 +536,5 @@
         c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: e => { ctx.done(b.id); flash(e.currentTarget, "✓ 已打開", 3000); } }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
     }
   };
-  window.BLOCKS = { h, R, textOf, flash, press, tableName, claudeLink, cardData, drawCard, teach, unwatchAll: () => { watchers.length = 0; }, watching: () => watchers.length };
+  window.BLOCKS = { h, R, textOf, flash, press, tableName, claudeLink, cardData, drawCard, teach, copyText, selectText, unwatchAll: () => { watchers.length = 0; }, watching: () => watchers.length };
 })();

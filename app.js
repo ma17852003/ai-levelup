@@ -172,10 +172,9 @@
     const msg = h("span", {}), box = h("div", { class: "paper" }), live = h("div", { "aria-live": "polite" }, msg, box);
     const btn = h("button", { class: "btn", onclick: async () => {
       ctx.set({ askN: (st.askN || 0) + 1 });   // 稱號用：按了幾次「卡住了？」
-      let ok = false;
-      try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+      const ok = await BLOCKS.copyText(text);
       if (ok) { BLOCKS.flash(btn, "✓ 已複製，到 Claude 貼上", 3000); msg.textContent = ""; box.replaceChildren(); }
-      else { msg.textContent = "複製不了，請手動選取這段"; box.replaceChildren(text); }
+      else { msg.textContent = "複製不了，已幫你選好下面這段：電腦按 Ctrl+C（Mac 按 ⌘+C），手機在反白處長按，選「複製」"; box.replaceChildren(text); BLOCKS.selectText(box); }
     } }, "卡住了？複製問題去問 Claude");
     return h("div", {}, h("div", { class: "actions" }, btn, BLOCKS.claudeLink()), live);
   }

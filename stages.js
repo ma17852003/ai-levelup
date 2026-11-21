@@ -63,9 +63,9 @@ window.STAGES = [
         reveal: { title: "今天全部用「對話」", text: "Cowork、Claude Code 先知道是什麼就好。撞到用量上限不是壞掉，等時間到就恢復。" } }
     ],
     blocks: [
-    // 序幕成果（簡報第 4～8 頁）：講師切畫面，學員想自己點開看也可以
-    { type: "link", href: "https://ma17852003.github.io/jamesaistartup-site/office/?demo=1", label: "講師示範：80 位 AI 員工的 3D 辦公室（自己點開看）" },
+    // 序幕成果（簡報第 4～8 頁）：講師切畫面，學員想自己點開看也可以。順序照簡報：第 6 張迎賓台、第 8 張 3D 辦公室（25 號對照表）
     { type: "link", href: "https://ma17852003.github.io/banquet-ai/greet/host.html?e=demo", label: "講師示範：宴會課迎賓台（示範版）" },
+    { type: "link", href: "https://ma17852003.github.io/jamesaistartup-site/office/?demo=1", label: "講師示範：80 位 AI 員工的 3D 辦公室（自己點開看）" },
     { type: "vote", id: "open.self", q: "你現在用 AI 做到哪幾種？（可以選不只一個）", multi: true, options: [
       { key: "A", label: "問問題、查資料" }, { key: "B", label: "有一段常用提示詞" }, { key: "C", label: "有自己的專案或 GPT" },
       { key: "D", label: "我的助教同事也在用" }, { key: "E", label: "用 AI 做出能點開的小工具" }, { key: "F", label: "沒打開 AI，它也會自己做事" },
@@ -115,12 +115,12 @@ window.STAGES = [
     { type: "copy", id: "s1.instr", must: true, label: "升級時刻①：在同一個對話打這句，把結果複製起來，下一關建專案用", from: "toInstr", noOpen: true } ] },
   { id: "s2", title: "建你的助教專案", time: "14:44", ppt: "第 23～26 頁", path: "must",
     learn: [   // 上課卡（23_Claude版上課卡.md 逐字搬來）
-      { type: "flip", mins: 1.5, title: "專案頁的每一塊",   // 2026-11-21 實測 T11 專案頁；目錄配對卡（目錄小技巧）拿掉
+      { type: "flip", mins: 1.5, title: "專案頁的每一塊",   // 2026-11-21 實測 T11 專案頁；目錄配對卡（目錄小技巧）拿掉；卡片順序照簡報第 24、26 張的編號 ①指示 ②記憶 ③背景資訊 ④對話｜Cowork
         intro: "專案像一位助教的辦公室：指示和參考資料放一次，之後在裡面開的每個對話都會照做，不用每次重貼。一張一張點開。",
         cards: [
           { label: "指示", zh: "它的工作守則", analogy: "像交給新承辦人的工作說明，寫一次就一直有效", example: "右邊「指示」點 ＋，貼上上一關請 Claude 改寫好的那段指令" },
-          { label: "背景資訊", zh: "它的參考資料櫃", analogy: "像放在承辦人桌上的資料夾，要回答就先翻它", example: "右邊「背景資訊」點 ＋ 上傳辦法、範本、往年的公告，上面會寫用了幾 % 的專案容量。只放公開的，學號、成績、身分證不要傳" },
           { label: "記憶", zh: "它在這個專案裡記得的事", analogy: "像承辦人自己的工作筆記，只有你看得到", example: "聊過幾次之後會出現在右邊「記憶」，點「檢視記憶」可以看" },
+          { label: "背景資訊", zh: "它的參考資料櫃", analogy: "像放在承辦人桌上的資料夾，要回答就先翻它", example: "右邊「背景資訊」點 ＋ 上傳辦法、範本、往年的公告，上面會寫用了幾 % 的專案容量。只放公開的，學號、成績、身分證不要傳" },
           { label: "對話｜Cowork", zh: "輸入框下面的切換", analogy: "像櫃台的兩個窗口，今天只用「對話」那一個", example: "在專案裡開的對話都收在這個專案；Cowork 是付費方案才有，今天不用點" }
         ],
         reveal: { title: "指示＋背景資訊，就是一位專屬助教", text: "打開專案，它就知道自己是誰。免費版最多 5 個專案，今天用 1 個。" } }
@@ -130,9 +130,11 @@ window.STAGES = [
       { key: "instr", label: "指示：它是誰、怎麼做事", shape: "circle" }, { key: "ref", label: "背景資訊：它要讀的檔案", shape: "square" } ],
       cards: [ { label: "你是招生組的公告寫手", bucket: "instr" }, { label: "學校公開的請假辦法", bucket: "ref" }, { label: "先讀活動資料，再寫公告", bucket: "instr" },
                { label: "公告範本", bucket: "ref" }, { label: "資料沒有的福利不准自己補", bucket: "instr" }, { label: "去年的參訪日公告", bucket: "ref" } ] },
+    // 建專案（簡報第 24、25 頁的順序：建專案貼指令 → 上傳資料 → 問一題）；參訪日活動資料放在「上傳」前面，用到才拿
+    { type: "check", must: true, items: [
+      { id: "s2.gem", label: "建好助教專案：左邊「專案」→ 新增、取名，在右邊「指示」點 ＋，貼上上一關改寫好的指令" } ] },
     { type: "copy", label: "沒有自己的資料？用這份「參訪日活動資料」：複製起來，上傳或貼進專案的「背景資訊」（第 3 關還會用到）", from: "relayData", noOpen: true },
-    { type: "check", must: true, items: [   // 建專案（簡報第 24 頁）
-      { id: "s2.gem", label: "建好助教專案：左邊「專案」→ 新增、取名，在右邊「指示」點 ＋，貼上上一關改寫好的指令" },
+    { type: "check", must: true, items: [
       { id: "s2.file", label: "在右邊「背景資訊」上傳了一份參考資料（公開的，或上面的參訪日活動資料）" },
       { id: "s2.ask", label: "在專案裡開對話問一題，拿到一段成果，先複製起來（第 3 關給審查員檢查）" } ] },
     // 2026-11-21 James：目錄小技巧（複製卡）課堂上拿掉；設計單第 4 格照留，可跳過，做法在附錄 E
@@ -171,7 +173,7 @@ window.STAGES = [
     { type: "copy", label: "第 3 格・內文：審查員全文，整段貼上", from: "skillBody", noOpen: true },
     { type: "check", must: true, items: [
       { id: "s3.skill", label: "審查員技能建好了，技能清單裡看得到它" },
-      { id: "s3.call", label: "叫審查員出來（在對話框打 / 選它，或直接說「幫我檢查這份公告」），把助教的成果和原始資料一起貼進去" } ] },
+      { id: "s3.call", label: "叫審查員出來（三種叫法都可以：在對話框打 / 選它、直接說「幫我檢查這份公告」、或在助教專案裡叫它），把助教的成果和原始資料一起貼進去" } ] },
     { type: "caught", id: "s3.caught", q: "用參訪日活動資料的人：裡面藏了 3 個錯，你的審查員抓到了哪幾個？", items: ["星期對不上（12/5 是星期六）", "人數對不上（3 × 25 = 75 人，不是 60）", "兩個報到地點（圖書館／行政大樓）"] },
     { type: "card", id: "s3.card" } ] },   // 小隊名片：建好專案和技能就填（設計單背面最上面）
   { id: "s4", title: "幫你的助教出考卷", time: "15:21", ppt: "第 32～34 頁", path: "must",
@@ -203,8 +205,9 @@ window.STAGES = [
         reveal: { title: "這叫資料紅綠燈：不確定，就當紅燈", text: "跟公文的密等一樣，等級不同，處理方式不一樣。免費版多做一件事：設定 → 隱私權 → 關掉「協助改善我們的 AI 模型」，對話才不會拿去訓練模型。處理公務前，先看學校的 AI 使用規範。" } }
     ],
     blocks: [   // 2026-11-20 James：「拿掉參考資料再問」先猜（s4.break，揭曉附 AI 實測回答）拿掉
-    { type: "text", id: "s4.write", must: true, field: "traps", label: "照五種陷阱，各寫一題考你的助教（設計單第 5 格）。例子見下方紙卡", rows: 6, min: 30 },
+    // 順序照簡報：第 32 張五種陷阱的例子 → 第 33 張寫題、互測 → 第 34 張紅綠燈
     { type: "copy", label: "五種陷阱題範例（查規定型／寫東西型）", from: "traps" },
+    { type: "text", id: "s4.write", must: true, field: "traps", label: "照五種陷阱，各寫一題考你的助教（設計單第 5 格）。例子見上面的範例卡", rows: 6, min: 30 },
     { type: "pass", id: "s4.pass", must: true },
     { type: "sort", id: "s4.light", q: "這些資料能不能交給 AI？", buckets: [
       { key: "g", label: "綠燈：可以給", shape: "circle" }, { key: "y", label: "黃燈：處理過再給", shape: "triangle" }, { key: "r", label: "紅燈：不能給", shape: "square" } ],
