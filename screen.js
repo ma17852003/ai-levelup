@@ -1,7 +1,7 @@
 // 投影幕：每 3 秒讀 /lu-state；內容沒變就不動 DOM（只改數字與寬度，節點固定）。畫面上永遠沒有編號或名字。
 (function () {
   const SHORT_URL = "ma17852003.github.io/ai-levelup";   // 之後換成真正的短網址
-  const VOTE_OF = { open: ["open.self", "open.agent"], s1: ["s1.guess"], s3: ["s3.guess"], s4: ["s4.break"], end: ["end.vote", "end.self"] };   // s1／s3／s4 是學員猜的答案（也存成票），畫成「全班猜的」長條圖
+  const VOTE_OF = { open: ["open.self"], end: ["end.vote", "end.self"] };   // Claude 版：開場的 Deep Research 題、第 3 關的先猜拿掉；2026-11-20 第 1、4 關的先猜也拿掉，那兩關改顯示等級分布（猜題長條「全班猜的」的畫法留著）
   const PILLS = [["A", "寫手"], ["B", "審查員"], ["C", "格式員"]];
 
   // ── 只在值真的變了才寫 DOM（第二次 render 同樣資料 ＝ 零次寫入）──
@@ -221,7 +221,7 @@
     if (s.id !== "end") R.wallOn = false;   // 離開收尾關就收起稱號牆，回來要再按 T 才揭曉
     put(R.stage, stageLabel(s));
     put(R.players, `全班 ${num(c, "players")} 人`);
-    const mode = s.id === "s5" ? "relay" : s.id === "end" && R.wallOn ? "titles" : VOTE_OF[s.id] ? "votes" : "levels";
+    const mode = s.id === "end" && R.wallOn ? "titles" : VOTE_OF[s.id] ? "votes" : "levels";   // Claude 版接力停用：接力面板不顯示（程式留著，renderRelay 不再被叫到）
     hide(R.levels, mode !== "levels"); hide(R.votes, mode !== "votes"); hide(R.relay, mode !== "relay"); hide(R.titles, mode !== "titles");
     if (mode === "levels") renderLevels(R, c);
     if (mode === "votes") renderVotes(R, c, s);
@@ -308,7 +308,7 @@
     return { tick, go, key, reset, paint, rotate, idx: () => idx };
   }
 
-  window.SCREEN = { build, render, controller, normalize, stageLabel, keyStage, SHORT_URL };
+  window.SCREEN = { build, render, controller, normalize, stageLabel, keyStage, SHORT_URL, renderRelay };   // renderRelay：接力停用後只剩測試直接叫（守住程式還能用）
 
   // ?mock=1：用固定假資料看版面，不碰伺服器（setStage／reset 也不會送出）
   function mockApi() {
@@ -326,7 +326,7 @@
     const ctl = controller(R, { api: mock ? mockApi() : window.API, setTimeout: (f, ms) => setTimeout(f, ms) });
     addEventListener("keydown", ctl.key);
     R.reset.addEventListener("click", async () => {
-      await ctl.reset(() => confirm("確定清空這個場次？所有人的編號、投票、接力都會歸零（學員頁會自動重新報到）"));
+      await ctl.reset(() => confirm("確定清空這個場次？所有人的編號、投票都會歸零（學員頁會自動重新報到）"));
       R.reset.blur();   // 用完就放開焦點：方向鍵與空白鍵不會誤觸它
     });
     R.reset.tabIndex = -1;

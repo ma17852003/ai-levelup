@@ -8,18 +8,20 @@
   ];
   // 任務：lv＝算在「升到第幾級」那一組；0＝不算經驗值（只拿成就）。每組加總 100（有測試）
   // *.learn＝那一關的上課卡上完（2026-11-16 James：每關 +5，從同級最大那件扣；s5 不給；s6、收尾是選看，沒有任務）
+  // Claude 版（2026-11-20，22_Claude版課程規格.md）：報到加設定三件事、開場加 Lv.1 基本功、第 1 關加 Word 檔、第 2 關改建專案、第 3 關改技能（抓錯、名片從第 5 關搬來）、第 5 關改成品；接力（s5.relay）停用
   const TASKS = [
-    { id: "s0.learn", lv: 2, xp: 5 }, { id: "s0.first", lv: 2, xp: 10 }, { id: "open.learn", lv: 2, xp: 5 }, { id: "open.self", lv: 2, xp: 10 }, { id: "open.agent", lv: 2, xp: 10 },
-    { id: "s1.learn", lv: 2, xp: 5 }, { id: "s1.guess", lv: 2, xp: 10 }, { id: "s1.copy", lv: 2, xp: 10 }, { id: "s1.brief", lv: 2, xp: 35 },
-    { id: "s1.instr", lv: 3, xp: 20 }, { id: "s2.learn", lv: 3, xp: 5 }, { id: "s2.sort", lv: 3, xp: 20 }, { id: "s2.gem", lv: 3, xp: 35 },
-    { id: "s2.reviewer", lv: 3, xp: 10 }, { id: "s2.call", lv: 3, xp: 10 },
-    { id: "s3.learn", lv: 4, xp: 5 }, { id: "s3.guess", lv: 4, xp: 10 }, { id: "s3.toc", lv: 4, xp: 20 }, { id: "s4.learn", lv: 4, xp: 5 }, { id: "s4.break", lv: 4, xp: 10 },
-    { id: "s4.light", lv: 4, xp: 10 }, { id: "s4.write", lv: 4, xp: 20 }, { id: "s4.pass", lv: 4, xp: 20 },
-    { id: "s5.learn", lv: 0, xp: 0 }, { id: "s5.relay", lv: 0, xp: 0 }, { id: "s5.caught", lv: 0, xp: 0 }, { id: "s5.team", lv: 0, xp: 0 }, { id: "s5.card", lv: 0, xp: 0 },
+    { id: "s0.learn", lv: 2, xp: 5 }, { id: "s0.code", lv: 2, xp: 5 }, { id: "s0.train", lv: 2, xp: 5 }, { id: "s0.pref", lv: 2, xp: 5 }, { id: "s0.first", lv: 2, xp: 10 },
+    { id: "open.learn", lv: 2, xp: 5 }, { id: "open.self", lv: 2, xp: 10 }, { id: "open.search", lv: 2, xp: 5 }, { id: "open.file", lv: 2, xp: 5 }, { id: "open.switch", lv: 2, xp: 5 },
+    { id: "s1.learn", lv: 2, xp: 5 }, { id: "s1.copy", lv: 2, xp: 10 }, { id: "s1.brief", lv: 2, xp: 25 },   // 2026-11-20 s1.guess 拿掉，10 點補給同級最大的 s1.brief（15→25）
+    { id: "s1.word", lv: 3, xp: 10 }, { id: "s1.instr", lv: 3, xp: 15 }, { id: "s2.learn", lv: 3, xp: 5 }, { id: "s2.sort", lv: 3, xp: 10 }, { id: "s2.gem", lv: 3, xp: 30 },   // s2.gem＝建好助教專案（id 沿用）
+    { id: "s2.file", lv: 3, xp: 10 }, { id: "s2.ask", lv: 3, xp: 10 }, { id: "s2.toc", lv: 3, xp: 10 },
+    { id: "s3.learn", lv: 4, xp: 5 }, { id: "s3.install", lv: 4, xp: 10 }, { id: "s3.skill", lv: 4, xp: 15 }, { id: "s3.call", lv: 4, xp: 10 }, { id: "s4.learn", lv: 4, xp: 5 },
+    { id: "s4.light", lv: 4, xp: 10 }, { id: "s4.write", lv: 4, xp: 15 }, { id: "s4.pass", lv: 4, xp: 30 },   // 2026-11-20 s4.break 拿掉，10 點補給同級最大的 s4.pass（20→30）
+    { id: "s3.caught", lv: 0, xp: 0 }, { id: "s3.card", lv: 0, xp: 0 }, { id: "s5.learn", lv: 0, xp: 0 }, { id: "s5.tool", lv: 0, xp: 0 },
     { id: "s6.demo", lv: 0, xp: 0 }, { id: "end.self", lv: 0, xp: 0 }, { id: "end.vote", lv: 0, xp: 0 }, { id: "end.plan", lv: 0, xp: 0 }
   ];
   const isLearn = id => /\.learn$/.test(id);
-  const WORK = TASKS.filter(x => !isLearn(x.id));   // 作答任務（25 件）：手速、偷跑、壓線、中位數、全勤、宇宙最速只算這些
+  const WORK = TASKS.filter(x => !isLearn(x.id));   // 作答任務（Claude 版 30 件；2026-11-20 兩題先猜拿掉前是 32）：手速、偷跑、壓線、中位數、全勤、宇宙最速只算這些
   const MILESTONES = [
     { lv: 2, ok: st => !!st.done["s1.brief"] },
     { lv: 3, ok: st => !!st.done["s2.gem"] },
@@ -27,10 +29,10 @@
   ];
   const ACH = [
     { id: "grilled", name: "被拷問到底", ok: st => !!st.done["s1.brief"] },
-    { id: "reviewer", name: "審查員上線", ok: st => !!st.done["s2.reviewer"] },
+    { id: "reviewer", name: "審查員上線", ok: st => !!st.done["s3.skill"] },   // Claude 版：審查員技能建好
     { id: "lv4", name: "考試答對 4 題", ok: st => (st.pass || 0) >= 4 },
     { id: "caught3", name: "抓到 3 個錯", ok: st => (st.caught || 0) >= 3 },
-    { id: "team", name: "小隊成軍", ok: st => !!st.done["s5.team"] },
+    { id: "team", name: "小隊成軍", ok: st => !!st.done["s3.call"] },   // Claude 版：叫審查員檢查過助教的成果（助教做 → 審查員查）
     { id: "plan", name: "三週計畫寫好", ok: st => !!st.done["end.plan"] }
   ];
   // at＝交件時間（毫秒）：只記第一次，重交不改（手速、偷跑、壓線都看第一次）。取消打勾再勾回來算「新的一次」（刻意取捨：誤點取消再勾，手速可能變慢）
@@ -63,7 +65,7 @@
     });
     return { done, doneAt, undoneAt };
   }
-  // 一關一關升，不能跳級：Lv.2 要需求單；Lv.3 要先到 Lv.2 再建好 Gem；Lv.4 要先到 Lv.3 再過 4 題
+  // 一關一關升，不能跳級：Lv.2 要需求單；Lv.3 要先到 Lv.2 再建好助教專案；Lv.4 要先到 Lv.3 再過 4 題（Lv.5 以上不在網頁升級：投影幕的統計在 n8n 裡夾在 1～4）
   function level(st) { let lv = 1; for (const m of MILESTONES) { if (m.ok(st)) lv = m.lv; else break; } return lv; }
   function progress(st) {
     const lv = level(st);
@@ -78,8 +80,11 @@
   function achievements(st) { return ACH.filter(a => a.ok(st)).map(a => a.id); }
   // ── 結業稱號＋積分（14_稱號積分規格.md）：純函式，只看 st（時間只用存下來的時間戳；不准 Date.now／Math.random）──
   const STAGE_ORDER = ["s0", "open", "s1", "s2", "s3", "s4", "s5", "s6", "end"];   // 跟 stages.js 同順序（有測試）；任務 id 點前面＝關卡
-  const GUESS = { "s1.guess": "B", "s3.guess": "B" };                                // 規格的「兩題先猜」＋正確答案（有測試對 stages.js）
-  const COPY_CARDS = ["grill", "toInstr", "reviewer", "tocExample", "traps"];         // 「所有複製鈕」＝這 5 張紙卡（接力的角色指令每人不同，不算）
+  // 規格的「兩題先猜」＋正確答案。2026-11-20 James：兩題都從 stages.js 拿掉、不算任務、不加積分；
+  // 這裡只留給稱號 #4 預言家、#5 反骨猜題王的條件用（跟 #30～32 接力一樣：邏輯照留，實際上沒人拿得到；2026-11-21 James：留著）
+  // #43 傳說級 2026-11-21 James 拍板：拿掉「先猜全對」，只看全勤＋五題全過＋三錯全抓
+  const GUESS = { "s1.guess": "B", "s4.break": "B" };
+  const COPY_CARDS = ["lv1Search", "lv1File", "grill", "toWord", "toInstr", "relayData", "myInstr", "skillName", "skillDesc", "skillBody", "traps", "toolPrompt"];   // 「所有複製鈕」＝stages.js 裡這 12 張紙卡（有測試）
   const chars = s => Array.from(String(s == null ? "" : s).replace(/\s/g, "")).length;   // 字數：不算空白換行
   // 講師切關時間軸 [[時間, 關卡], …]：聯集、照時間排、同一關連續兩筆只留最早（兩個分頁各自輪詢到的會重疊）
   function mergeLog(a, b) {
@@ -114,7 +119,7 @@
       pass: Math.max(0, Math.min(5, Number(st.pass) || 0)), caught: Math.max(0, Math.min(3, Number(st.caught) || 0)),
       brief: chars(sheet.brief), first: chars(sheet.first), self0: Number(st.self0) || 0, self1: Number(st.self1) || 0,
       guessOk: Object.keys(GUESS).filter(id => g(id)[0] === GUESS[id]).length, guessed: Object.keys(GUESS).filter(id => g(id).length).length,
-      agent: done["open.agent"] && Array.isArray(picks["open.agent"]) ? picks["open.agent"].length : -1,
+      agent: done["end.vote"] && Array.isArray(picks["end.vote"]) ? picks["end.vote"].length : -1,   // Claude 版：開場的 Deep Research 題拿掉，#16／#17 改看收尾「今天的小隊做到哪幾件」
       resend: Math.max(0, ...Object.keys(vn).map(k => (Number(vn[k]) || 0) - 1)),
       fast, early, late, median, ask: Number(st.askN) || 0,
       lateSeat: !!(st.seatedAt && first && sidx(first) > sidx("open") && Math.abs(seen[first] - st.seatedAt) <= 60000),   // 入座時講師已經在開場之後
@@ -131,8 +136,8 @@
     [6, 1, "被拷問到懷疑人生", "被 AI 追問到寫出 N 字，比你的教學計畫還長", f => f.done["s1.brief"] && f.brief >= 300, f => ({ N: f.brief })],
     [7, 1, "一句話打天下", "只用 N 個字開場，照樣升到 Lv.X", f => f.done["s0.first"] && f.first <= 6 && f.lv >= 3, f => ({ N: f.first, X: f.lv })],
     [8, 1, "金句製造機", "第一句話就寫了 N 字，AI 還沒開口你先講完了", f => f.done["s0.first"] && f.first >= 40, f => ({ N: f.first })],
-    [9, 1, "抓錯雷達維修中", "三個錯都從你眼前溜走，雷達下次記得充電", f => f.done["s5.caught"] && f.caught === 0],   // 畫面不讓送出 0 個，實際上幾乎拿不到
-    [11, 1, "補考常客", "過了 N 題，你的 Gem 回家要多讀書", f => f.done["s4.pass"] && f.pass <= 2, f => ({ N: f.pass })],
+    [9, 1, "抓錯雷達維修中", "三個錯都從你眼前溜走，雷達下次記得充電", f => f.done["s3.caught"] && f.caught === 0],   // 畫面不讓送出 0 個，實際上幾乎拿不到
+    [11, 1, "補考常客", "過了 N 題，你的助教回家要多讀書", f => f.done["s4.pass"] && f.pass <= 2, f => ({ N: f.pass })],
     [12, 2, "開竅火箭", "開場說自己 Lv.X，收尾變 Lv.Y，兩小時連升 N 級", f => f.self0 && f.self1 && f.self1 - f.self0 >= 3, f => ({ X: f.self0, Y: f.self1, N: f.self1 - f.self0 })],
     [13, 2, "謙虛到地心", "嘴上說自己是工讀生，手上做到認證講師", f => f.self0 === 1 && f.lv === 4],
     [14, 2, "自信爆棚", "一開場就說自己 Lv.X，今天是來視察的吧", f => f.self0 >= 5, f => ({ X: f.self0 })],
@@ -148,30 +153,31 @@
     [10, 4, "及格就是勝利", "剛好 4 題過關，不多不少，精準", f => f.pass === 4],   // 2026-11-13 修正：優先序 1 → 4（Lv.4 必定考過 ≥4 題）
     [38, 4, "深藏不露掃地僧", "安安靜靜就升到 Lv.4，高手都很低調",   // 2026-11-13 修正：除了考神附體、及格就是勝利，優先序 1～3 都不中
       f => f.lv === 4 && !TITLES.some(x => x.pri >= 1 && x.pri <= 3 && x.id !== "t3" && x.ok(f))],
-    [24, 4, "卡關求救專業戶", "問了 Gemini N 次，你很懂得善用資源", f => f.ask >= 3, f => ({ N: f.ask })],
+    [24, 4, "卡關求救專業戶", "問了 Claude N 次，你很懂得善用資源", f => f.ask >= 3, f => ({ N: f.ask })],
     [25, 4, "獨立自主不求人", "一次都沒求救，自己一路打到 Lv.4", f => f.ask === 0 && f.lv === 4],
     [26, 4, "複製貼上之神", "N 張提示詞卡全部複製，Ctrl+V 是你的本能", f => f.copiedAll, () => ({ N: COPY_CARDS.length })],
     [27, 4, "手動複製苦行僧", "剪貼簿不給力，你就自己選字複製，令人敬佩", f => f.manual],
     [28, 4, "分類強迫症", "分類一次就全對，你家抽屜一定很整齊", f => f.done["s2.sort"] && f.done["s4.light"] && f.sortN("s2.sort") === 1 && f.sortN("s4.light") === 1],
     [29, 4, "紅綠燈交通警察", "試了 N 次才讓每張卡停對位置，交通終於順了", f => f.done["s4.light"] && f.sortN("s4.light") >= 3, f => ({ N: f.sortN("s4.light") })],
+    // #30～32 看接力角色：Claude 版接力停用，沒有人拿得到（邏輯照留，要換新稱號等 James 決定）
     [30, 4, "接力最速寫手", "第一棒就由你開跑，後面的人都靠你", f => f.role === "A"],
     [31, 4, "鐵面審查員", "別人寫的你負責挑毛病，這個工作很適合你", f => f.role === "B"],
     [32, 4, "排版潔癖患者", "最後一棒交給你，表格一定對得整整齊齊", f => f.role === "C"],
-    [33, 4, "錯字沒機會出門", "助教寫完先給審查員看，錯字沒機會出門", f => f.done["s2.call"]],   // 2026-11-19 審查員統一做成 Gem：原「Skills 魔法師」（個人帳號）換掉
-    [34, 4, "Gem 收藏家", "一個人養了兩個 Gem，下一步是開動物園", f => f.done["s2.gem"] && f.done["s2.reviewer"] && !f.done["s2.call"]],   // 2026-11-19：不看帳號；跟 #33 互斥（叫過審查員就歸 #33），一人最多中一個，才不會擠掉其他主稱號
+    [33, 4, "錯字沒機會出門", "助教寫完先給審查員看，錯字沒機會出門", f => f.done["s3.call"]],   // Claude 版：叫審查員技能檢查過
+    [34, 4, "手冊收藏家", "助教和手冊都備好了，下一步是開圖書館", f => f.done["s2.gem"] && f.done["s3.skill"] && !f.done["s3.call"]],   // 2026-11-19：不看帳號；跟 #33 互斥（叫過審查員就歸 #33），一人最多中一個，才不會擠掉其他主稱號
     [35, 4, "三週計畫通", "三週計畫寫得清清楚楚，校長看了會想抄", f => f.plan3],
     [36, 4, "名片設計師", "你的 AI 小隊已經有名片了，比很多人還正式", f => f.card3],
-    [37, 4, "全勤模範生", "25 件任務一件不漏，你是今天的模範生", f => f.all],
+    [37, 4, "全勤模範生", "30 件任務一件不漏，你是今天的模範生", f => f.all],   // 30＝WORK.length（有測試）
     // 常見層（2026-11-13 第二次修正：60 人模擬 25～43% 的人都會中，降到 4.5，也符合排在後面；主稱號怎麼挑見 titles()）
     [2, 4.5, "AI 照妖鏡", "三個錯一個都沒放過，AI 在你面前無所遁形", f => f.caught >= 3],
-    [3, 4.5, "考神附體", "五題全過，你的 Gem 比你還會考試", f => f.pass >= 5],
+    [3, 4.5, "考神附體", "五題全過，你的助教比你還會考試", f => f.pass >= 5],
     [4, 4.5, "預言家", "還沒揭曉就知道答案，AI 的套路被你看穿", f => f.guessOk === 2],
     [39, 5, "助教練習生", "你的 AI 已經知道自己是誰了，下一步讓它考試", f => f.lv === 3],
     [40, 5, "小老師也有春天", "已經會交代任務了，下一步幫它取名字", f => f.lv === 2],
-    [41, 5, "路人甲（尚未覺醒）", "今天先來看看，回家打開 Gemini 就會覺醒", f => f.lv === 1],
+    [41, 5, "路人甲（尚未覺醒）", "今天先來看看，回家打開 Claude 就會覺醒", f => f.lv === 1],
     [42, 5, "觀光團團長", "你是來視察的，我們懂", f => f.nDone < 3],
-    [43, 0, "傳說級 AI 處室主任", "全勤、五題全過、三錯全抓、先猜全對，今天的隱藏魔王", f => f.all && f.pass >= 5 && f.caught >= 3 && f.guessOk === 2],
-    [44, 0, "宇宙最速通關者", "25 件任務全做完，平均 N 秒交一件，講師都追不上你", f => f.all && f.median !== null && f.median <= 45000, f => ({ N: sec(f.median) })]
+    [43, 0, "傳說級 AI 處室主任", "全勤、五題全過、三錯全抓，今天的隱藏魔王", f => f.all && f.pass >= 5 && f.caught >= 3],
+    [44, 0, "宇宙最速通關者", "30 件任務全做完，平均 N 秒交一件，講師都追不上你", f => f.all && f.median !== null && f.median <= 45000, f => ({ N: sec(f.median) })]
   ];
   const TITLES = TITLE_ROWS.map(([no, pri, name, say, ok, vars]) => ({ id: "t" + no, no, pri, name, say, ok: f => !!ok(f),
     why: f => { const v = vars ? vars(f) : {}; return say.replace(/(^|[^A-Za-z])([NMXY])(?![A-Za-z])/g, (m, p, k) => p + v[k]); } }));
@@ -203,12 +209,12 @@
   function score(st) {
     const f = facts(st), done = f.done;
     const xp = TASKS.filter(x => done[x.id]).reduce((s, x) => s + x.xp, 0), speed = 5 * (f.fast + f.early);
-    const correct = 10 * f.guessOk + 10 * f.caught + 5 * f.pass, growth = f.self0 && f.self1 ? 5 * Math.max(0, f.self1 - f.self0) : 0;
-    const team = (done["s5.relay"] ? 20 : 0) + (done["s5.card"] ? 10 : 0) + (done["end.plan"] ? 10 : 0);
+    const correct = 10 * f.caught + 5 * f.pass, growth = f.self0 && f.self1 ? 5 * Math.max(0, f.self1 - f.self0) : 0;
+    const team = (done["s3.call"] ? 20 : 0) + (done["s3.card"] ? 10 : 0) + (done["end.plan"] ? 10 : 0);   // Claude 版：原本接力 +20 換成「叫審查員檢查」（小隊跑過一次），名片搬到第 3 關
     return { total: xp + speed + correct + growth + team, xp, speed, correct, growth, team };
   }
-  // 每一項的實際上限（集換卡能力值長條的滿格；有測試對 score 驗證）：經驗值＝任務 EXP 加總、手速＝每件 +5、答對＝先猜 2×10＋抓錯 3×10＋考試 5×5、成長＝6 級×5、團隊＝20＋10＋10
-  const SCORE_MAX = { xp: TASKS.reduce((s, x) => s + x.xp, 0), speed: 5 * WORK.length, correct: 75, growth: 30, team: 40 };
+  // 每一項的實際上限（集換卡能力值長條的滿格；有測試對 score 驗證）：經驗值＝任務 EXP 加總、手速＝每件 +5、答對＝抓錯 3×10＋考試 5×5（2026-11-20 先猜 2×10 拿掉）、成長＝6 級×5、團隊＝20＋10＋10
+  const SCORE_MAX = { xp: TASKS.reduce((s, x) => s + x.xp, 0), speed: 5 * WORK.length, correct: 55, growth: 30, team: 40 };
   // ── 以下函式會被 tools/create_wf.py 原樣嵌進 n8n（單一來源），只准用純 JS ──
   function lastReset(rows) { return rows.filter(r => r.Kind === "reset").reduce((m, r) => Math.max(m, Number(r.Id)), 0); }
   // 這一輪的人：同一台電腦（Cid）只算一個人、用第一次入座的順序排號；桌號用最新那列

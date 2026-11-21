@@ -4,9 +4,9 @@
 (function () {
   const h = (tag, attrs, ...kids) => { const e = document.createElement(tag); Object.entries(attrs || {}).forEach(([k, v]) => { if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v); }); kids.flat().forEach(k => e.append(k && k.nodeType ? k : String(k == null ? "" : k))); return e; };
   const opts = (...kids) => h("div", { class: "opts" }, ...kids);      // 一組選項：桌機自動換行、手機一個一行
-  // 複製完直接開 Gemini（新分頁；不重用分頁，免得蓋掉正在用的對話）
-  const GEMINI = "https://gemini.google.com/app";
-  const geminiLink = () => h("a", { class: "btn demo", href: GEMINI, target: "_blank", rel: "noopener" }, "打開 Gemini ↗");
+  // 複製完直接開 Claude 新對話（新分頁；不重用分頁，免得蓋掉正在用的對話）
+  const CLAUDE = "https://claude.ai/new";
+  const claudeLink = () => h("a", { class: "btn demo", href: CLAUDE, target: "_blank", rel: "noopener" }, "打開 Claude ↗");
   const actions = (...kids) => h("div", { class: "actions" }, ...kids);   // 送出鈕＋提示字一排，提示字太長自己換行
   // 按鈕回饋：flash＝暫時換字（預設 3 秒）；press＝送出類按鈕（工作先做完，按鈕停用 600ms 並顯示「送出中…」；work 回傳 false＝沒送成，不閃）
   function flash(btn, text, ms) { if (btn.__old == null) btn.__old = btn.textContent; btn.textContent = text; clearTimeout(btn.__t); btn.__t = setTimeout(() => { btn.textContent = btn.__old; btn.__old = null; }, ms || 3000); }
@@ -36,7 +36,7 @@
   function textOf(luc, from) {
     const v = luc[from];
     if (!Array.isArray(v)) return v;
-    return v.map(x => `${x.name}｜查規定型：${x.rule}｜寫東西型：${x.write}｜好的 Gem 應該：${x.expect}`).join("\n\n");
+    return v.map(x => `${x.name}｜查規定型：${x.rule}｜寫東西型：${x.write}｜好的助教應該：${x.expect}`).join("\n\n");
   }
   // 桶子的小圖形：固定三種，用 createElementNS 建，不用 innerHTML
   function shapeMark(shape) {
@@ -279,10 +279,10 @@
           const btn = e.currentTarget; let ok = false;
           try { await navigator.clipboard.writeText(get()); ok = true; } catch (e) { ok = false; }
           const copied = () => Object.assign({}, ctx.st().copied, { [b.from]: true });   // 稱號用：哪幾張紙卡複製過
-          if (ok) { msg.textContent = "✓ 已複製，到 Gemini 貼上"; flash(btn, "✓ 已複製", 3000); manual.replaceChildren(); ctx.set({ copied: copied() }); if (b.id) ctx.done(b.id); return; }
+          if (ok) { msg.textContent = "✓ 已複製，到 Claude 貼上"; flash(btn, "✓ 已複製", 3000); manual.replaceChildren(); ctx.set({ copied: copied() }); if (b.id) ctx.done(b.id); return; }
           msg.textContent = "複製沒成功，請手動選取上面文字複製";   // 失敗不算完成
           manual.replaceChildren(h("button", { class: "btn small manual", onclick: () => { ctx.set({ copied: copied(), manualCopy: true }); if (b.id) ctx.done(b.id); msg.textContent = "✓ 已記錄手動複製"; manual.replaceChildren(); } }, "我已手動複製"));
-        } }, "複製"), b.noOpen ? "" : geminiLink(), msg, manual));
+        } }, "複製"), b.noOpen ? "" : claudeLink(), msg, manual));
     },
     text(b, ctx) {
       const ta = h("textarea", { rows: b.rows || 3, "aria-label": b.label }); ta.value = (ctx.st().sheet || {})[b.field] || "";
@@ -304,9 +304,10 @@
     },
     guess(b, ctx) {
       const out = h("div", { "aria-live": "polite" });
-      const sample = () => b.sample && ctx.luc[b.sample] ? h("details", {}, h("summary", {}, "看 AI 真的怎麼回答（2026-11-12 實測）"), h("div", { class: "paper" }, ctx.luc[b.sample])) : "";   // 揭曉後才給
-      const show = pick => { out.replaceChildren(h("p", { class: pick === b.answer ? "ok-msg" : "bad-msg" }, pick === b.answer ? "✓ 猜對了" : "✗ 再看看"), h("p", {}, b.reveal), sample()); if (!(ctx.st().done || {})[b.id]) { ctx.send({ kind: "vote", key: b.id, value: pick }); ctx.done(b.id, { picks: Object.assign({}, ctx.st().picks, { [b.id]: [pick] }) }); } };   // 第一次作答才送，投影幕畫分布
-      if ((ctx.st().done || {})[b.id]) out.replaceChildren(h("p", { class: "ok-msg" }, "✓ 已完成"), h("p", {}, b.reveal), sample());
+      // 2026-11-20：揭曉後附「看 AI 真的怎麼回答（2026-11-12 實測）」拿掉，用它的兩題先猜也拿掉了。
+      // 猜題元件本身留著備用（目前作答區沒有關卡用它），測試用假題目鎖住行為
+      const show = pick => { out.replaceChildren(h("p", { class: pick === b.answer ? "ok-msg" : "bad-msg" }, pick === b.answer ? "✓ 猜對了" : "✗ 再看看"), h("p", {}, b.reveal)); if (!(ctx.st().done || {})[b.id]) { ctx.send({ kind: "vote", key: b.id, value: pick }); ctx.done(b.id, { picks: Object.assign({}, ctx.st().picks, { [b.id]: [pick] }) }); } };   // 第一次作答才送，投影幕畫分布
+      if ((ctx.st().done || {})[b.id]) out.replaceChildren(h("p", { class: "ok-msg" }, "✓ 已完成"), h("p", {}, b.reveal));
       return h("div", { class: "block" }, h("p", {}, b.q), opts(b.options.map(o => h("button", { class: "btn opt", onclick: () => show(o.key) }, o.key + "　" + o.label))), out);
     },
     vote(b, ctx) {
@@ -377,7 +378,7 @@
       const sel = h("select", { "aria-label": "過了幾題" }, [0, 1, 2, 3, 4, 5].map(n => h("option", { value: n }, n + " 題")));
       sel.value = String(ctx.st().pass || 0);
       const msg = h("span", { "aria-live": "polite", class: "ok-msg" }, (ctx.st().done || {})[b.id] ? `✓ 已交件：過了 ${ctx.st().pass || 0} 題` : "");
-      return h("div", { class: "block" }, h("label", {}, "鄰座唸你寫的題目、你自己打字、鄰座打分：你的 Gem 過了幾題？"), sel, actions(
+      return h("div", { class: "block" }, h("label", {}, "鄰座唸你寫的題目、你在自己的助教專案打字、鄰座打分：你的助教過了幾題？"), sel, actions(
         h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => { const q = ctx.done(b.id, { pass: Number(sel.value) }); report(ctx, msg, `✓ 已交件：過了 ${sel.value} 題`, q); }) }), "交件 EXP"), msg),
         h("p", { class: "step-no" }, "過 4 題以上就升到 Lv.4 認證講師；沒過的題目，回家補進指令或參考資料"));
     },
@@ -385,7 +386,7 @@
       const saved0 = ((ctx.st().picks || {})[b.id]) || [];
       const boxes = b.items.map((x, i) => { const c = h("input", { type: "checkbox", id: "cg" + i }); c.checked = saved0.includes(i); return [c, h("label", { class: "check", for: "cg" + i }, c, " ", x)]; });
       const st = ctx.st(), saved = h("p", { class: "ok-msg", "aria-live": "polite" }, (st.done || {})[b.id] && typeof st.caught === "number" ? `✓ 已送出：抓到 ${st.caught} 個` : "");
-      return h("div", { class: "block" }, h("p", {}, "1:35 揭曉後：你們這組抓到了哪幾個？"), boxes.map(x => x[1]), actions(
+      return h("div", { class: "block" }, h("p", {}, b.q || "1:35 揭曉後：你們這組抓到了哪幾個？"), boxes.map(x => x[1]), actions(   // Claude 版第 3 關寫自己的題目（b.q）
         h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => {
           const idx = boxes.map((x, i) => x[0].checked ? i : -1).filter(i => i >= 0);
           if (!idx.length) { saved.className = "bad-msg"; saved.textContent = "先勾抓到的錯"; return false; }
@@ -409,7 +410,7 @@
         warn();
         wrap.replaceChildren(h("p", {}, online ? `你是${tableName(team)}的 ${st.relayRole} ${r[0]}` : `你是${tableName(team)}・第 ${grpNo} 組的 ${st.relayRole} ${r[0]}`),
           h("details", { open: "" }, h("summary", {}, `原始資料（${online ? "兩" : "三"}個人都一樣，裡面藏了 3 個錯）`), h("div", { class: "paper" }, ctx.luc.relayData)),
-          R.copy({ label: `${r[0]}的指令：整段複製到 Gemini`, from: r[1] }, ctx),
+          R.copy({ label: `${r[0]}的指令：整段複製到 Claude`, from: r[1] }, ctx),
           r[2] ? h("div", {}, h("p", {}, `前一棒（${r[2]}）交給你的：`), prevBox) : "",
           h("label", {}, "把 AI 做好的成果整段貼在這裡，按「交棒」"), ta, h("div", {}, count, " ", over),
           actions(go, msg), sentBox);
@@ -435,14 +436,14 @@
       return wrap;
     },
     card(b, ctx) {
-      const f = [["gem", "助教（Gem 名稱）"], ["reviewer", "審查員（Gem 名稱）"], ["where", "明天從哪裡打開"]];
+      const f = [["gem", "助教專案叫什麼"], ["reviewer", "審查員技能叫什麼"], ["where", "明天從哪裡打開"]];   // 跟設計單 Claude 版背面的名片一樣
       const inputs = f.map(([k, l]) => { const i = h("input", { type: "text", "aria-label": l }); i.value = ((ctx.st().sheet || {}).card || {})[k] || ""; return [k, l, i]; });
       const msg = h("span", { "aria-live": "polite" });
       return h("div", { class: "block" }, h("p", {}, "我的小隊名片（設計單背面最上面）"), inputs.map(([k, l, i]) => h("label", {}, l, i)), actions(
         h("button", Object.assign(submitAttrs(b.id), { onclick: e => press(e.currentTarget, () => { ctx.sheet("card", Object.fromEntries(inputs.map(([k, , i]) => [k, i.value]))); ctx.done(b.id); msg.className = "ok-msg"; msg.textContent = "✓ 已存名片"; }) }), "存名片"), msg));
     },
     plan(b, ctx) {
-      const w = [["w1", "第 1 週：把小隊給哪位同事試用？寫他的名字"], ["w2", "第 2 週：從附錄再拿哪一份做法，做成新的 Gem？"], ["w3", "第 3 週：挑哪一件真的工作讓小隊跑一次？"]];
+      const w = [["w1", "第 1 週：把小隊給哪位同事試用？寫他的名字"], ["w2", "第 2 週：從附錄再加哪一本手冊（技能）？"], ["w3", "第 3 週：挑哪一件真的工作讓小隊跑一次？"]];
       const inputs = w.map(([k, l]) => { const i = h("input", { type: "text", "aria-label": l }); i.value = ((ctx.st().sheet || {}).plan || {})[k] || ""; return [k, l, i]; });
       const msg = h("span", { "aria-live": "polite" });
       return h("div", { class: "block" }, inputs.map(([k, l, i]) => h("label", {}, l, i)), actions(
@@ -506,5 +507,5 @@
         c.url ? h("a", { class: "btn demo", href: c.url, target: "_blank", rel: "noopener", onclick: e => { ctx.done(b.id); flash(e.currentTarget, "✓ 已打開", 3000); } }, "自己點開看") : h("span", { class: "step-no" }, "講師示範中"))));
     }
   };
-  window.BLOCKS = { h, R, textOf, flash, press, tableName, geminiLink, cardData, drawCard, teach, unwatchAll: () => { watchers.length = 0; }, watching: () => watchers.length };
+  window.BLOCKS = { h, R, textOf, flash, press, tableName, claudeLink, cardData, drawCard, teach, unwatchAll: () => { watchers.length = 0; }, watching: () => watchers.length };
 })();

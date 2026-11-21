@@ -3,7 +3,7 @@
 <title>我的 AI 團隊設計單</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=optional" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=optional"></noscript>
-<link rel="stylesheet" href="theme.css?v=202611201610"><link rel="stylesheet" href="app.css?v=202611201610">
+<link rel="stylesheet" href="theme.css?v=202611211749"><link rel="stylesheet" href="app.css?v=202611211749">
 <style>
   .sheet { max-width: 794px; margin: 0 auto; padding: var(--sp-4); }
   .tk-bar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-4) 0; }
@@ -35,7 +35,7 @@
   }
 </style></head>
 <body><main class="sheet" id="sheet"></main>
-<script src="core.js?v=202611201610"></script><script src="pixel.js?v=202611201610"></script><script src="avatar.js?v=202611201610"></script>
+<script src="core.js?v=202611211749"></script><script src="pixel.js?v=202611211749"></script><script src="avatar.js?v=202611211749"></script>
 <script>
 (function () {
   const root = document.getElementById("sheet");
@@ -82,10 +82,10 @@
   cell("第 1 格　我明天最想丟給 AI 助理的第一件事", sheet.first);
   cell("第 2、3 格　需求單（我的助教要做什麼、怎麼算做得好）", sheet.brief);
   cell("第 4 格　參考資料目錄（檔名｜管什麼｜給誰｜關鍵字）", sheet.toc);
-  cell("第 5 格　考我的 Gem 的陷阱題", sheet.traps);
+  cell("第 5 格　考我的助教的陷阱題", sheet.traps);
   cell("設計單第 6 格：你在 Lv 幾", `開場自評：${nm(st.self0)}　→　收尾自評：${nm(st.self1)}`);
   cell("考試成績", (st.done || {})["s4.pass"] ? `${Number(st.pass) || 0} 題通過（共 5 題，過 4 題以上算 Lv.4 認證講師）` : "", "（還沒填）");
-  rows("我的小隊名片", [["助教（Gem 名稱）", card.gem], ["審查員", card.reviewer], ["明天從哪裡打開", card.where]]);
-  rows("三週計畫", [["第 1 週　試用的同事", plan.w1], ["第 2 週　再加哪一份", plan.w2], ["第 3 週　真的工作", plan.w3]]);
+  rows("我的小隊名片", [["助教專案叫什麼", card.gem], ["審查員技能叫什麼", card.reviewer], ["明天從哪裡打開", card.where]]);
+  rows("三週計畫", [["第 1 週　試用的同事", plan.w1], ["第 2 週　再加哪一本手冊", plan.w2], ["第 3 週　真的工作", plan.w3]]);
 })();
 </script></body></html>

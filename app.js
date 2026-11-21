@@ -116,7 +116,7 @@
   }
   // ── 升級畫面：只播一次，按繼續才關（Esc 也可關；開著時背景 inert） ──
   let openUps = 0;
-  // 一次跳好幾級（例如先過考試、後建 Gem：Lv.2 → Lv.4）：一級一張，按「繼續」才出下一張
+  // 一次跳好幾級（例如先過考試、後建專案：Lv.2 → Lv.4）：一級一張，按「繼續」才出下一張
   function showLevelUps(from, to) {
     const steps = []; for (let l = from + 1; l <= to; l++) steps.push(l);
     const next = () => { const l = steps.shift(); if (l) showLevelUp(l - 1, l, next); };
@@ -148,8 +148,8 @@
     const tables = Array.from({ length: 14 }, (_, i) => String(i + 1)).concat(Array.from({ length: 10 }, (_, i) => "線上" + (i + 1)));
     const sel = h("select", { "aria-label": "桌號" }, tables.map(x => h("option", { value: x }, /線上/.test(x) ? x.replace("線上", "線上第 ") + " 組" : `第 ${x} 桌`)));
     const msg = h("p", { "aria-live": "polite" });
-    root.replaceChildren(banner(), h("section", { class: "stage" }, h("h2", {}, "報到"), h("p", {}, "左邊開這個網頁，右邊開 Gemini。"), h("label", {}, "你坐第幾桌？"), sel,
-      h("p", { class: "step-no" }, "Gem＝存好指令的專屬助教，今天會建兩個：助教和審查員"), h("button", { class: "btn primary", onclick: async e => {
+    root.replaceChildren(banner(), h("section", { class: "stage" }, h("h2", {}, "報到"), h("p", {}, "左邊開這個網頁，右邊開 Claude。"), h("label", {}, "你坐第幾桌？"), sel,
+      h("p", { class: "step-no" }, "專案＝存好指令和資料的專屬助教，技能＝一本做法手冊。今天做一個助教專案、一本審查員技能"), h("button", { class: "btn primary", onclick: async e => {
         const go = e.currentTarget;
         if (go.disabled) return;
         go.disabled = true;   // 連點只算一次
@@ -167,17 +167,17 @@
     const el = R[b.type](b, ctx);
     return b.must ? markMust(el) : el;
   }
-  function askBtn(s) {   // 課程標準第 10 項：問 Gemini（不串 API，複製一段帶課程脈絡的提示詞）
+  function askBtn(s) {   // 課程標準第 10 項：問 Claude（不串 API，複製一段帶課程脈絡的提示詞）
     const text = `我正在上「AI 團隊自己組團」研習的「${s.title}」這一關（${s.ppt}）。我卡在：（寫你卡在哪）。請用不懂技術的人聽得懂的話，一步一步教我。`;
     const msg = h("span", {}), box = h("div", { class: "paper" }), live = h("div", { "aria-live": "polite" }, msg, box);
     const btn = h("button", { class: "btn", onclick: async () => {
       ctx.set({ askN: (st.askN || 0) + 1 });   // 稱號用：按了幾次「卡住了？」
       let ok = false;
       try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
-      if (ok) { BLOCKS.flash(btn, "✓ 已複製，到 Gemini 貼上", 3000); msg.textContent = ""; box.replaceChildren(); }
+      if (ok) { BLOCKS.flash(btn, "✓ 已複製，到 Claude 貼上", 3000); msg.textContent = ""; box.replaceChildren(); }
       else { msg.textContent = "複製不了，請手動選取這段"; box.replaceChildren(text); }
-    } }, "卡住了？複製問題去問 Gemini");
-    return h("div", {}, h("div", { class: "actions" }, btn, BLOCKS.geminiLink()), live);
+    } }, "卡住了？複製問題去問 Claude");
+    return h("div", {}, h("div", { class: "actions" }, btn, BLOCKS.claudeLink()), live);
   }
   const stageLabel = id => ({ s0: "報到", open: "開場", end: "收尾" })[id] || (/^s[1-6]$/.test(id) ? `第 ${id.slice(1)} 關` : "");
   function walk(n, c, f) { if (n.className && String(n.className).split(" ").includes(c)) f(n); Array.from(n.children || []).forEach(k => walk(k, c, f)); }
@@ -185,8 +185,8 @@
   const IDS = STAGES.map(s => s.id), menu = { el: null, h2: null, rows: {} };
   const tasksOf = id => LU.TASKS.filter(x => x.id.split(".")[0] === id);
   // ── 目錄方向 C（T8）：角色卡＋七套造型衣櫃＋每關徽章＋小格子。節點只建一次，之後只改字和 class；資料沒變就不碰 DOM ──
-  const UP = { s1: 2, s2: 3, s4: 4 };   // 做完這關換上哪一套（照 core.js MILESTONES：需求單、助教 Gem、考過 4 題）
-  const HOW = { 1: "第 1 關交完需求單就換上", 2: "第 2 關建好助教 Gem 就換上", 3: "第 4 關考過 4 題就換上" };
+  const UP = { s1: 2, s2: 3, s4: 4 };   // 做完這關換上哪一套（照 core.js MILESTONES：需求單、助教專案、考過 4 題）
+  const HOW = { 1: "第 1 關交完需求單就換上", 2: "第 2 關建好助教專案就換上", 3: "第 4 關考過 4 題就換上" };
   const NS = "http://www.w3.org/2000/svg";
   const ICON = {   // 固定的小圖示（不吃使用者輸入），用 createElementNS 畫
     pin: ["none", "2.2", [["path", { d: "M12 21s-6-5.6-6-11a6 6 0 0 1 12 0c0 5.4-6 11-6 11z" }], ["circle", { cx: 12, cy: 10, r: 2.2 }]]],
