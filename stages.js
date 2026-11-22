@@ -54,10 +54,10 @@ window.STAGES = [
       { type: "flip", mins: 1.5, title: "對話、Cowork、Claude Code，還有模型和用量",
         intro: "Lv.1 講師會在畫面上指給你看。一張一張點開。",
         cards: [
-          { label: "對話", zh: "一問一答，所有方案都有", analogy: "像到櫃台問承辦人，問一句答一句", example: "今天整堂課都用「對話」" },
-          { label: "Cowork", zh: "說要什麼結果，它自己拆步驟、做到交出成品", analogy: "像把整件事交給同事，他自己排步驟，做完把成品交給你", example: "輸入框有「對話｜Cowork」切換；Cowork 是付費方案才有，點了會請你升級。今天只講概念，不操作" },
-          { label: "Claude Code", zh: "給寫程式的人，付費方案才有", analogy: "像一位工程師，在電腦裡讀寫整個專案、自己跑指令", example: "開場的成果秀都是用它做的，今天只看講師示範" },
-          { label: "模型", zh: "免費版有 Sonnet（預設）和 Haiku", analogy: "像處室裡不同的同事，平常找預設那位就好", example: "輸入框右下角點模型名稱可以換；「投入程度」越高想得越久越仔細，也越吃額度，平常用「中」。Opus 要付費" },
+          { label: "對話", zh: "一問一答，所有方案都有", analogy: "像打電話問專家：它回答，事情你自己做", example: "今天整堂課都用「對話」" },
+          { label: "Cowork", zh: "說要什麼結果，它自己拆步驟、做到交出成品", analogy: "像請助理來你辦公室：你說要什麼結果，它自己開檔案、做到交件，你在畫面上看它做", example: "輸入框有「對話｜Cowork」切換；Cowork 是付費方案才有，點了會請你升級。今天只講概念，不操作" },
+          { label: "Claude Code", zh: "給寫程式的人，付費方案才有", analogy: "像同一位助理換到資訊室：打字下指令、管整個程式，給會寫程式的人。跟 Cowork 本事差不多，一個點畫面、一個打指令", example: "開場的成果秀都是用它做的，今天只看講師示範" },
+          { label: "模型", zh: "免費版有 Sonnet（預設）和 Haiku；Opus、Fable 要付費", analogy: "像處室裡不同的同事，各有專長，平常找預設那位就好", example: "Haiku 最快：短問答、翻譯、改錯字；Sonnet 日常主力：寫公告、整理資料；Opus 想更深：長文件、複雜規劃；Fable 最強：最難、最長的大任務。輸入框右下角點模型名稱可以換；「投入程度」越高想得越久越仔細，也越吃額度，平常用「中」" },
           { label: "用量", zh: "5 小時一個額度＋每週一個額度", analogy: "像影印額度，用完要等時間到才恢復", example: "官方不給數字；聊得越長、檔案越大、模型越大，用得越快。免費版看不到用了幾 %，撞到上限才跳提示，等時間到就恢復" }
         ],
         reveal: { title: "今天全部用「對話」", text: "Cowork、Claude Code 先知道是什麼就好。撞到用量上限不是壞掉，等時間到就恢復。" } }
@@ -72,7 +72,9 @@ window.STAGES = [
       { key: "G", label: "好幾個 AI 分工，還會互相抓錯" } ] },
     // Lv.1 基本功（簡報第 12～16 頁；第 13、14 頁是 2026-11-21 新增的對話／Cowork／Code、模型和用量，在上課卡第 3 張）
     { type: "copy", label: "Lv.1 基本功① 上網查：貼到 Claude，看它有沒有自己上網、附上來源", from: "lv1Search" },
-    { type: "copy", label: "② 讀檔案：先上傳一份公開的辦法或公告（PDF、Word 都可以），再貼這句。學號、成績、身分證不要傳", from: "lv1File" },
+    // 2026-11-22 James：學員手上不一定有檔案 → 先給範例檔（學務處公開的《學生請假規定》）
+    { type: "link", href: "files/leave-rules.txt", download: "學生請假規定_範例.txt", label: "下載範例檔：學生請假規定（學務處公開法規）" },
+    { type: "copy", label: "② 讀檔案：先上傳一份公開的辦法或公告（PDF、Word 都可以；沒有就用上面的範例檔），再貼這句。學號、成績、身分證不要傳", from: "lv1File" },
     { type: "check", items: [
       { id: "open.search", label: "上網查了一題，它附了來源連結" },
       { id: "open.file", label: "讀了一份公開檔案，拿到 5 點重點" },

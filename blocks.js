@@ -528,7 +528,9 @@
       return wrap;
     },
     link(b) {   // 另開分頁的連結鈕；不給經驗值、不算任務
-      return h("div", { class: "block" }, actions(h("a", { class: "btn primary", href: b.href, target: "_blank", rel: "noopener" }, b.label)));
+      const at = { class: "btn primary", href: b.href, target: "_blank", rel: "noopener" };
+      if (b.download) at.download = b.download;   // 2026-11-22 範例檔：支援 download 的瀏覽器直接下載；不支援的（iPhone、LINE 內建）退回開新分頁，學員頁不會被蓋掉
+      return h("div", { class: "block" }, actions(h("a", at, b.label)));
     },
     demo(b, ctx) {
       return h("div", { class: "block" }, b.cards.map(c => h("div", { class: "stage demo" },
