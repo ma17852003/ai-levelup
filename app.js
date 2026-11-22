@@ -231,7 +231,16 @@
     const close = back => { box.hidden = true; againBtn.setAttribute("aria-expanded", "false"); if (back && againBtn.focus) againBtn.focus(); };
     box.hidden = true;
     againBtn.addEventListener("click", () => { box.hidden = false; againBtn.setAttribute("aria-expanded", "true"); if (msg.focus) msg.focus(); });
-    const again = h("div", { class: "self-reset" }, againBtn, box);
+    // 2026-11-22 James：回到入座畫面重新選桌（進度、寫的字都留著；桌號、號碼清掉，重新整理後停在選桌號，按「入座」再取號）
+    const seatBtn = h("button", { class: "btn small", type: "button", "aria-expanded": "false" }, "回到入座畫面（換桌號）");
+    const seatMsg = h("p", { class: "confirm-msg", tabindex: "-1" }, "回到入座畫面重新選桌？你的進度和寫過的字都會留著。");
+    const seatBox = h("div", { class: "reseat-box", role: "group", "aria-label": "確認回到入座畫面" }, seatMsg,
+      h("div", { class: "actions" }, h("button", { class: "btn small", type: "button", onclick: () => {
+        st = Object.assign({}, st, { player: 0 }); delete st.team; API.store.set(KEY, st); location.reload();   // 直接寫、不跟別的分頁合併（合併會把桌號補回來）
+      } }, "確定換桌"), h("button", { class: "btn small", type: "button", onclick: () => { seatBox.hidden = true; seatBtn.setAttribute("aria-expanded", "false"); if (seatBtn.focus) seatBtn.focus(); } }, "取消")));
+    seatBox.hidden = true;
+    seatBtn.addEventListener("click", () => { seatBox.hidden = false; seatBtn.setAttribute("aria-expanded", "true"); if (seatMsg.focus) seatMsg.focus(); });
+    const again = h("div", { class: "self-reset" }, seatBtn, seatBox, againBtn, box);
     menu.el = h("section", { class: "stage menu intro", id: "menu" }, heroEl, closet, h("p", { class: "step-no" }, "點一關進去；講師上到哪一關會標「講師進行中」，你可以自由切換"), menu.h2, list, link ? R.link(link) : "", again);
     return menu.el;
   }

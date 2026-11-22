@@ -340,6 +340,11 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; box-si
 .confirm-box[hidden] { display: none; }
 .confirm-msg { margin: 0; }
 .confirm-box .actions { justify-content: flex-end; }
+/* 2026-11-22 回到入座畫面的確認框：跟我要重來同樣式，但不是危險動作，框線用一般顏色 */
+.reseat-box { margin: 12px auto 0; max-width: 32em; padding: 12px 14px; text-align: left; border: 1.5px solid var(--line-strong); border-radius: var(--r-card); background: var(--panel-2); }
+.reseat-box[hidden] { display: none; }
+.reseat-box .actions { justify-content: flex-end; }
+.self-reset > .btn + .btn, .self-reset > .reseat-box + .btn { margin-left: 8px; }
 .btn.danger { border-color: var(--bad); color: var(--bad); }
 .self-reset .btn.danger { border-style: solid; }
 /* 排版精修 B1：底部按鈕列變矮（按鈕仍 48px）、上緣淡出；Tab 移動焦點時避開頂部狀態列和按鈕列 */
