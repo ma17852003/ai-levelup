@@ -1,6 +1,6 @@
 // 投影幕：每 3 秒讀 /lu-state；內容沒變就不動 DOM（只改數字與寬度，節點固定）。畫面上永遠沒有編號或名字。
 (function () {
-  const SHORT_URL = "ma17852003.github.io/ai-levelup";   // 之後換成真正的短網址
+  const SHORT_URL = "is.gd/mitust";   // 2026-11-22 短網址（is.gd，轉到 ma17852003.github.io/ai-levelup/）；QR 仍指完整網址
   const VOTE_OF = { open: ["open.self"], end: ["end.vote", "end.self"] };   // Claude 版：開場的 Deep Research 題、第 3 關的先猜拿掉；2026-11-20 第 1、4 關的先猜也拿掉，那兩關改顯示等級分布（猜題長條「全班猜的」的畫法留著）
   const PILLS = [["A", "寫手"], ["B", "審查員"], ["C", "格式員"]];
 
