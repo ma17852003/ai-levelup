@@ -40,7 +40,7 @@
     // 兩邊不是同一堂課（resetId 不同）：闖關進度整包用 resetId 比較大的那一邊，不能把上一堂的進度合回來；填的字（sheet）照時間戳合
     if (typeof a.resetId === "number" && typeof b.resetId === "number" && a.resetId !== b.resetId) {
       const win = a.resetId > b.resetId ? a : b;
-      ["done", "pass", "caught", "picks", "player", "relayGroup", "relayRole", "self0", "self1", "resetId",
+      ["done", "pass", "caught", "picks", "player", "team", "relayGroup", "relayRole", "self0", "self1", "resetId",
        "doneAt", "undoneAt", "stageSeenAt", "stageLog", "seatedAt", "askN", "voteN", "sortN", "copied", "manualCopy", "claim", "cardSeen", "selfResetAt"].forEach(k => { if (win[k] === undefined) delete out[k]; else out[k] = win[k]; });
       return out;
     }
@@ -404,8 +404,9 @@
       if (stage && stage !== lastStage) { lastStage = stage; renderMenu(); }   // 學員自由切換（比照宴會廳）：講師切關不跳轉、不跳提示條
       if (j && j.relay) { lastRelay = j.relay; if (window.RELAY_UPDATE) window.RELAY_UPDATE(j.relay); }
       // 講師按了新的一堂課。resetId 是數字（含 0）才清；undefined＝入座沒連上，不動
-      if (j && typeof st.resetId === "number" && Number(j.resetId) > st.resetId) { again = false; // 只清闖關進度；學員自己寫的內容（sheet）、桌號、帳號都留著，重開後用同一桌重新取號
-        st = { sheet: st.sheet || {}, sheetAt: st.sheetAt || {}, team: st.team, acct: st.acct, done: {}, pass: 0, caught: 0, player: 0, resetId: Number(j.resetId), seatedAt: Date.now() };   // resetId 記新的：別的舊分頁合併時會輸給它，清掉的進度不會復活
+      if (j && typeof st.resetId === "number" && Number(j.resetId) > st.resetId) { again = false; // 只清闖關進度；學員自己寫的內容（sheet）、帳號留著
+        // 2026-11-22 James：桌號也清掉、回到選桌號，要自己按「入座」才取號——講師按「新的一堂課」後，沒人在用的舊分頁不會自動入座、變成投影幕上的幽靈人數
+        st = { sheet: st.sheet || {}, sheetAt: st.sheetAt || {}, acct: st.acct, done: {}, pass: 0, caught: 0, player: 0, resetId: Number(j.resetId), seatedAt: Date.now() };   // resetId 記新的：別的舊分頁合併時會輸給它，清掉的進度不會復活
         API.store.set(KEY, st); API.store.set("lu-q-" + S, []); location.reload(); return; }   // 直接寫、不跟舊的合併，否則清掉的進度會被合回來
       await API.flush(); notifyFlush();
     } catch (e) { /* 單輪失敗不影響下一輪 */ }
