@@ -44,12 +44,13 @@
     R.levels = h("section", "panel levels");
     const cols = h("div", "lv-cols");
     LU.LEVELS.forEach(L => {
-      const demo = L.lv >= 5, col = h("div", "lv-col " + (demo ? "demo" : "today"));
+      // 2026-11-22 James：Lv.5（做出小工具）今天做得到 → 金色欄；人數不由網頁統計（n8n 夾在 1～4），寫「做出小工具」。Lv.6、7 才是示範
+      const demo = L.lv >= 6, self = L.lv === 5, col = h("div", "lv-col " + (demo ? "demo" : self ? "today self" : "today"));
       const av = h("img", "av"); av.src = "img/avatar-lv" + L.lv + ".png"; av.alt = ""; av.width = 72; av.height = 72;
       const fb = h("div", "av-fb", "Lv." + L.lv); fb.hidden = true; fb._h = true;   // 圖載不出來就換成文字徽章，不留破圖圖示
       av.onerror = () => { hide(av, true); hide(fb, false); };
       const track = h("div", "lv-track"), fill = h("i", "lv-fill"); track.append(fill);
-      const n = h("div", "lv-n", demo ? "示範" : "0 人");
+      const n = h("div", "lv-n", demo ? "示範" : self ? "做出小工具" : "0 人");
       col.append(av, fb, h("div", "lv-no", "Lv." + L.lv), h("div", "lv-name", L.name), track, n);
       col._av = av; col._fb = fb; col._fill = fill; col._n = n; R.lvCols.push(col); cols.append(col);
     });
