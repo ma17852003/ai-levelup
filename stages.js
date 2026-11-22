@@ -110,7 +110,7 @@ window.STAGES = [
         ] }
     ],
     blocks: [   // 2026-11-20 James：先猜（s1.guess，揭曉附 AI 實測回答）拿掉
-    { type: "copy", id: "s1.copy", must: true, label: "拷問提示詞：整段複製，貼到 Claude。你在第 1 格寫了的話，會自動帶進「（　）」裡", from: "grill", fill: "first" },
+    { type: "copy", id: "s1.copy", must: true, label: "拷問提示詞：整段複製，貼到 Claude。你在第 1 格寫的會自動帶進第一個括號；（什麼場合）自己改", from: "grill", fill: "first" },
     { type: "text", id: "s1.brief", must: true, field: "brief", label: "把 Claude 整理的需求單重點貼回來（設計單第 2、3 格）", rows: 6, min: 30 },
     { type: "copy", label: "一句話做成 Word 檔：在同一個對話打這句（「參訪日公告」換成你那件事；Excel、PowerPoint、PDF 也可以）", from: "toWord", noOpen: true },
     { type: "check", items: [ { id: "s1.word", label: "拿到可以下載的 Word 檔，打開看過排版" } ] },
