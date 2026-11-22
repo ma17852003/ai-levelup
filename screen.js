@@ -26,6 +26,20 @@
   const num = (o, k) => Number((o && o[k]) || 0);
   const max1 = (...xs) => Math.max(1, ...xs);
 
+  // 2026-11-22 James：成就牆輪流 show——一次亮一個成就、寫怎麼拿；6 個輪完換「結業稱號預告」，再回到第一個（每 8 秒，跟翻頁同一個計時器）
+  const ACH_HOW = { grilled: "第 1 關：拷問完，把需求單貼回網頁", reviewer: "第 3 關：建好審查員技能", lv4: "第 4 關：考試答對 4 題，按「交件 EXP」",
+    caught3: "第 3 關：審查員抓到 3 個錯", team: "第 3 關：叫審查員檢查助教的成果", plan: "收尾關：寫好三週計畫，按「存計畫」" };
+  const NO_PREVIEW = [4, 5, 30, 31, 32];   // 拿不到的稱號（先猜、接力已停用）不預告；隱藏稱號（優先序 0）也不預告，留驚喜
+  const PREVIEW_PER = 8;
+  function previewNames() { return (LU.TITLES || []).filter(x => x.pri !== 0 && NO_PREVIEW.indexOf(x.no) < 0).map(x => x.name); }
+  function achSteps() { return LU.ACH.length + Math.ceil(previewNames().length / PREVIEW_PER); }
+  function renderSpot(R) {
+    const k = R.achStep % achSteps(), n = LU.ACH.length;
+    LU.ACH.forEach((a, i) => cls(R.ach[a.id], i === k ? "bar-row hot" : "bar-row"));
+    if (k < n) { const a = LU.ACH[k]; put(R.achSpot, a.name + "\n怎麼拿：" + (ACH_HOW[a.id] || "")); return; }
+    const names = previewNames(), pages = Math.ceil(names.length / PREVIEW_PER), pg = k - n;
+    put(R.achSpot, `結業稱號預告（第 ${pg + 1}/${pages} 頁，收尾揭曉誰拿到）\n` + names.slice(pg * PREVIEW_PER, (pg + 1) * PREVIEW_PER).join("、"));
+  }
   function barRow(label) {
     const row = h("div", "bar-row"), l = h("span", "bl", label), b = h("span", "bb"), i = h("i"), n = h("span", "bn", "0");
     b.append(i); row.append(l, b, n); row._l = l; row._i = i; row._n = n; return row;
@@ -92,7 +106,8 @@
     const ach = h("aside", "ach"); ach.append(qr, h("h3", "", "全班成就牆"), h("div", "ach-sub", "不列名字"));
     const list = h("div", "ach-list"); R.ach = {};
     LU.ACH.forEach(a => { const r = barRow(a.name); R.ach[a.id] = r; list.append(r); });
-    ach.append(list);
+    R.achSpot = h("div", "ach-spot", ""); R.achStep = 0;
+    ach.append(list, R.achSpot); renderSpot(R);
     main.append(left, ach);
 
     // 底列
@@ -304,6 +319,7 @@
       let turned = false;
       if (R.relayPages > 1) { R.relayPage = (R.relayPage + 1) % R.relayPages; turned = true; }
       if (R.wallPages > 1) { R.wallPage = (R.wallPage + 1) % R.wallPages; turned = true; }
+      R.achStep = (R.achStep + 1) % achSteps(); renderSpot(R);   // 成就牆輪播只動這一塊，不重畫整頁
       if (turned) { last = ""; paint(); }
     }
     return { tick, go, key, reset, paint, rotate, idx: () => idx };
