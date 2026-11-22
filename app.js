@@ -167,17 +167,6 @@
     const el = R[b.type](b, ctx);
     return b.must ? markMust(el) : el;
   }
-  function askBtn(s) {   // 課程標準第 10 項：問 Claude（不串 API，複製一段帶課程脈絡的提示詞）
-    const text = `我正在上「AI 團隊自己組團」研習的「${s.title}」這一關（${s.ppt}）。我卡在：（寫你卡在哪）。請用不懂技術的人聽得懂的話，一步一步教我。`;
-    const msg = h("span", {}), box = h("div", { class: "paper" }), live = h("div", { "aria-live": "polite" }, msg, box);
-    const btn = h("button", { class: "btn", onclick: async () => {
-      ctx.set({ askN: (st.askN || 0) + 1 });   // 稱號用：按了幾次「卡住了？」
-      const ok = await BLOCKS.copyText(text);
-      if (ok) { BLOCKS.flash(btn, "✓ 已複製，到 Claude 貼上", 3000); msg.textContent = ""; box.replaceChildren(); }
-      else { msg.textContent = "複製不了，已幫你選好下面這段：電腦按 Ctrl+C（Mac 按 ⌘+C），手機在反白處長按，選「複製」"; box.replaceChildren(text); BLOCKS.selectText(box); }
-    } }, "卡住了？複製問題去問 Claude");
-    return h("div", {}, h("div", { class: "actions" }, btn, BLOCKS.claudeLink()), live);
-  }
   const stageLabel = id => ({ s0: "報到", open: "開場", end: "收尾" })[id] || (/^s[1-6]$/.test(id) ? `第 ${id.slice(1)} 關` : "");
   function walk(n, c, f) { if (n.className && String(n.className).split(" ").includes(c)) f(n); Array.from(n.children || []).forEach(k => walk(k, c, f)); }
   // ── 目錄＋一關一頁（T7，比照宴會廳）：九關的 DOM 只建一次，換頁只切 hidden，打到一半的字不會不見；位置記在網址 #s1 ──
@@ -343,12 +332,11 @@
       const h2 = h("h2", { tabindex: "-1" }, s.title); stageH2[s.id] = h2;
       // 先教學、後作答（T12）：報到～第 5 關的上課卡沒上完，作答區根本不建（不是用 CSS 藏）；上完或舊存檔已作答過就直接給作答區，上課收成可展開複習。
       // 第 6 關與收尾是選看：收在「想複習再點開」，作答一直在。上課卡的狀態只在記憶體，輪詢不碰
-      const answers = h("div", { class: "answers", tabindex: "-1" }), learnBox = h("div", { class: "learn" }), askBox = h("div", { class: "ask" });
-      const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id }, stageHead(s, h2), learnBox, answers, askBox);
+      const answers = h("div", { class: "answers", tabindex: "-1" }), learnBox = h("div", { class: "learn" });   // 2026-11-22 James：「卡住了？」那一排拿掉
+      const el = h("section", { class: "stage" + (s.demo ? " demo" : ""), id: "st-" + s.id }, stageHead(s, h2), learnBox, answers);
       const fill = () => {
         if (answers.children.length) return;
         answers.append(...s.blocks.map(renderBlock));
-        askBox.replaceChildren(askBtn(s));   // 「卡住了？」跟作答一起出現（還沒上完課時會複製到還看不到的題目）
         const demo = s.blocks.find(b => b.type === "demo"), wraps = [];
         walk(answers, "pixel-wrap", w => wraps.push(w));
         if (demo) wraps.forEach((w, i) => { if (demo.cards[i]) w.append(AVATAR.el(demo.cards[i].lv, 64)); });
